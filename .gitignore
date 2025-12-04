@@ -1,0 +1,38 @@
+
+node_modules/
+.expo/
+.expo-shared/
+.cache/
+android/
+ios/
+.env
+.vscode/
+# Node
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Expo
+.expo/
+.expo-shared/
+
+# Metro
+.cache/
+
+# Build
+android/app/build/
+ios/build/
+ios/Pods/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
