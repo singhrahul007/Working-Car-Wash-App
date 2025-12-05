@@ -1,0 +1,73 @@
+{
+  "expo": {
+    "name": "CarWash India",
+    "slug": "carwash-india",
+    "version": "1.0.0",
+    "sdkVersion": "48.0.0",
+    "platforms": ["ios", "android"],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    
+    "android": {
+      "package": "com.anonymous.carwashapp",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#10B981"
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      }
+    },
+    
+    "ios": {
+      "bundleIdentifier": "com.anonymous.carwashapp",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "CarWash needs your location to find nearby car wash services.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "CarWash needs your location to provide location-based services.",
+        "NSLocationAlwaysUsageDescription": "CarWash needs your location to provide location-based services."
+      }
+    },
+    
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow CarWash to use your location to find nearby services.",
+          "locationAlwaysPermission": "Allow CarWash to use your location to find nearby services.",
+          "locationWhenInUsePermission": "Allow CarWash to use your location to find nearby services.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends.",
+          "cameraPermission": "Allow CarWash to access camera for vehicle photos."
+        }
+      ]
+    ],
+    
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    }
+  }
+}

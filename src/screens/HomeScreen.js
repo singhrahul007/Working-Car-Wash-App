@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -6,92 +6,330 @@ import {
   ScrollView, 
   TouchableOpacity, 
   StatusBar,
-  SafeAreaView 
+  SafeAreaView,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  FlatList
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import * as Location from 'expo-location';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   
+  // State variables
+  const [location, setLocation] = useState(null);
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('Select City');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showCityModal, setShowCityModal] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
+  // Sample Indian cities for manual selection
+  const indianCities = [
+    { id: '1', name: 'Mumbai', state: 'Maharashtra' },
+    { id: '2', name: 'Delhi', state: 'Delhi' },
+    { id: '3', name: 'Bangalore', state: 'Karnataka' },
+    { id: '4', name: 'Hyderabad', state: 'Telangana' },
+    { id: '5', name: 'Chennai', state: 'Tamil Nadu' },
+    { id: '6', name: 'Kolkata', state: 'West Bengal' },
+    { id: '7', name: 'Pune', state: 'Maharashtra' },
+    { id: '8', name: 'Ahmedabad', state: 'Gujarat' },
+    { id: '9', name: 'Jaipur', state: 'Rajasthan' },
+    { id: '10', name: 'Lucknow', state: 'Uttar Pradesh' },
+  ];
+
+  // Load saved location on mount
+  useEffect(() => {
+    loadSavedLocation();
+    requestLocationPermission();
+  }, []);
+
+  const loadSavedLocation = async () => {
+    try {
+      const savedCity = await AsyncStorage.getItem('@carwash_city');
+      if (savedCity) {
+        setCity(savedCity);
+      }
+    } catch (error) {
+      console.log('Error loading saved city:', error);
+    }
+  };
+
+  const saveCity = async (cityName) => {
+    try {
+      await AsyncStorage.setItem('@carwash_city', cityName);
+    } catch (error) {
+      console.log('Error saving city:', error);
+    }
+  };
+
+  const requestLocationPermission = async () => {
+    try {
+      setIsLoading(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        setPermissionDenied(true);
+        Alert.alert(
+          'Location Permission Required',
+          'CarWash needs location access to find services near you.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Try Again', onPress: () => requestLocationPermission() }
+          ]
+        );
+        return false;
+      }
+      
+      setPermissionDenied(false);
+      await getCurrentLocation();
+      return true;
+    } catch (error) {
+      console.log('Permission error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getCurrentLocation = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Get current position
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeout: 10000,
+      });
+
+      setLocation(location);
+
+      // Reverse geocode to get address
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (geocode.length > 0) {
+        const place = geocode[0];
+        
+        // Set city
+        if (place.city) {
+          setCity(place.city);
+          await saveCity(place.city);
+        } else if (place.region) {
+          setCity(place.region);
+          await saveCity(place.region);
+        }
+
+        // Build address string
+        const addressParts = [
+          place.name,
+          place.street,
+          place.city,
+          place.region,
+          place.country
+        ].filter(Boolean);
+        
+        setAddress(addressParts.join(', '));
+      }
+    } catch (error) {
+      console.log('Location error:', error);
+      Alert.alert(
+        'Location Error',
+        'Unable to fetch your location. Please try again or select city manually.',
+        [
+          { text: 'Select City', onPress: () => setShowCityModal(true) },
+          { text: 'Try Again', onPress: () => getCurrentLocation() }
+        ]
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCitySelect = async (selectedCity) => {
+    setCity(selectedCity.name);
+    await saveCity(selectedCity.name);
+    setShowCityModal(false);
+  };
+
+  const refreshLocation = () => {
+    getCurrentLocation();
+  };
+
+  // Action items for the grid
+  const actionItems = [
+    {
+      id: '1',
+      title: 'Car Wash',
+      subtitle: 'Starting at ₹299',
+      icon: 'local-car-wash',
+      color: '#4A90E2',
+      bgColor: '#E3F2FD',
+      action: () => navigation.navigate('Booking', { vehicle: 'car' })
+    },
+    {
+      id: '2',
+      title: 'Bike Wash',
+      subtitle: 'Starting at ₹149',
+      icon: 'two-wheeler',
+      color: '#50C878',
+      bgColor: '#E8F5E9',
+      action: () => navigation.navigate('Booking', { vehicle: 'bike' })
+    },
+    {
+      id: '3',
+      title: 'Products',
+      subtitle: 'Shop Now',
+      icon: 'shopping-cart',
+      color: '#FF6B6B',
+      bgColor: '#FFEBEE',
+      action: () => navigation.navigate('Products')
+    },
+    {
+      id: '4',
+      title: 'Support',
+      subtitle: 'Get Help',
+      icon: 'help-outline',
+      color: '#FFA500',
+      bgColor: '#FFF3E0',
+      action: () => navigation.navigate('Support')
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#4A90E2" barStyle="light-content" />
       
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity>
-            <Text style={styles.menuIcon}>☰</Text>
+          <TouchableOpacity style={styles.menuButton}>
+            <Icon name="menu" size={28} color="#FFFFFF" />
           </TouchableOpacity>
+          
           <Text style={styles.appTitle}>CarWash</Text>
-          <TouchableOpacity style={styles.locationButton}>
-            <Text style={styles.locationIcon}>📍</Text>
-            <Text style={styles.locationText}>Current City</Text>
+          
+          {/* Location Button */}
+          <TouchableOpacity 
+            style={styles.locationButton}
+            onPress={() => setShowCityModal(true)}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#4A90E2" />
+            ) : (
+              <Icon name="location-on" size={18} color="#4A90E2" />
+            )}
+            <Text style={styles.locationText} numberOfLines={1}>
+              {city}
+            </Text>
+            <Icon name="keyboard-arrow-down" size={16} color="#4A90E2" />
           </TouchableOpacity>
         </View>
 
         {/* Greeting */}
         <View style={styles.greetingContainer}>
-          <Text style={styles.greetingTitle}>Hi! Ready for a clean ride?</Text>
-          <Text style={styles.greetingSubtitle}>Book a wash or buy products fast.</Text>
+          <Text style={styles.greetingTitle}>
+            {city !== 'Select City' ? `Hi! Welcome to ${city}` : 'Hi! Welcome to CarWash'}
+          </Text>
+          <Text style={styles.greetingSubtitle}>
+            Book a wash or buy products fast.
+          </Text>
+          
+          {address && (
+            <View style={styles.addressContainer}>
+              <Icon name="place" size={14} color="#6B7280" />
+              <Text style={styles.addressText} numberOfLines={2}>
+                {address}
+              </Text>
+            </View>
+          )}
+          
+          {permissionDenied && (
+            <TouchableOpacity 
+              style={styles.enableLocationButton}
+              onPress={requestLocationPermission}
+            >
+              <Icon name="location-on" size={18} color="#FFFFFF" />
+              <Text style={styles.enableLocationText}>Enable Location</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Action Grid */}
         <View style={styles.actionGrid}>
-          {/* Car Wash */}
+          {actionItems.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.actionCard, { backgroundColor: item.bgColor }]}
+              onPress={item.action}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
+                <Icon name={item.icon} size={28} color={item.color} />
+              </View>
+              <Text style={styles.actionTitle}>{item.title}</Text>
+              <Text style={styles.actionSubtitle}>{item.subtitle}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Services Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {city !== 'Select City' ? `Services in ${city}` : 'Our Services'}
+          </Text>
+          <TouchableOpacity>
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.servicesCard}>
           <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: '#E3F2FD' }]}
+            style={styles.serviceItem}
             onPress={() => navigation.navigate('Booking', { vehicle: 'car' })}
           >
-            <Text style={[styles.actionIcon, { color: '#4A90E2' }]}>🚗</Text>
-            <Text style={styles.actionTitle}>Car Wash</Text>
-            <Text style={styles.actionSubtitle}>Book Now</Text>
+            <View style={styles.serviceIconContainer}>
+              <Icon name="local-car-wash" size={24} color="#4A90E2" />
+            </View>
+            <View style={styles.serviceInfo}>
+              <Text style={styles.serviceName}>Basic Car Wash</Text>
+              <Text style={styles.servicePrice}>₹299 • 30 mins</Text>
+            </View>
+            <Icon name="chevron-right" size={20} color="#95A5A6" />
           </TouchableOpacity>
 
-          {/* Bike Wash */}
           <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: '#E8F5E9' }]}
-            onPress={() => navigation.navigate('Booking', { vehicle: 'bike' })}
+            style={styles.serviceItem}
+            onPress={() => navigation.navigate('Booking', { vehicle: 'car' })}
           >
-            <Text style={[styles.actionIcon, { color: '#50C878' }]}>🏍️</Text>
-            <Text style={styles.actionTitle}>Bike Wash</Text>
-            <Text style={styles.actionSubtitle}>Book Now</Text>
-          </TouchableOpacity>
-
-          {/* Products */}
-          <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: '#FFEBEE' }]}
-            onPress={() => navigation.navigate('Products')}
-          >
-            <Text style={[styles.actionIcon, { color: '#FF6B6B' }]}>🛒</Text>
-            <Text style={styles.actionTitle}>Products</Text>
-            <Text style={styles.actionSubtitle}>Shop Now</Text>
-          </TouchableOpacity>
-
-          {/* Support */}
-          <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: '#FFF3E0' }]}
-            onPress={() => navigation.navigate('Support')}
-          >
-            <Text style={[styles.actionIcon, { color: '#FFA500' }]}>❓</Text>
-            <Text style={styles.actionTitle}>Support</Text>
-            <Text style={styles.actionSubtitle}>Get Help</Text>
+            <View style={styles.serviceIconContainer}>
+              <Icon name="local-car-wash" size={24} color="#4A90E2" />
+            </View>
+            <View style={styles.serviceInfo}>
+              <Text style={styles.serviceName}>Premium Car Wash</Text>
+              <Text style={styles.servicePrice}>₹499 • 45 mins</Text>
+            </View>
+            <Icon name="chevron-right" size={20} color="#95A5A6" />
           </TouchableOpacity>
         </View>
 
         {/* Recent Bookings */}
-        <Text style={styles.sectionTitle}>Recent Bookings</Text>
-        
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Bookings</Text>
+        </View>
+
         <View style={styles.recentCard}>
-          <View style={styles.recentContent}>
-            <Text style={styles.historyIcon}>📋</Text>
-            <View style={styles.recentTextContainer}>
-              <Text style={styles.recentTitle}>No recent bookings</Text>
-              <Text style={styles.recentSubtitle}>
-                Place your first booking to see it here!
-              </Text>
-            </View>
-          </View>
+          <Icon name="history" size={40} color="#D1D5DB" />
+          <Text style={styles.recentTitle}>No recent bookings</Text>
+          <Text style={styles.recentSubtitle}>
+            Place your first booking to see it here!
+          </Text>
           <TouchableOpacity 
             style={styles.bookButton}
             onPress={() => navigation.navigate('Booking', { vehicle: 'car' })}
@@ -105,9 +343,60 @@ export default function HomeScreen() {
       <TouchableOpacity 
         style={styles.fab}
         onPress={() => navigation.navigate('Camera')}
+        activeOpacity={0.8}
       >
-        <Text style={styles.fabIcon}>📸</Text>
+        <Icon name="camera-alt" size={28} color="#FFFFFF" />
       </TouchableOpacity>
+
+      {/* City Selection Modal */}
+      <Modal
+        visible={showCityModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCityModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Your City</Text>
+              <TouchableOpacity onPress={() => setShowCityModal(false)}>
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={indianCities}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.cityItem}
+                  onPress={() => handleCitySelect(item)}
+                >
+                  <View>
+                    <Text style={styles.cityName}>{item.name}</Text>
+                    <Text style={styles.cityState}>{item.state}</Text>
+                  </View>
+                  {city === item.name && (
+                    <Icon name="check" size={24} color="#4A90E2" />
+                  )}
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+            />
+            
+            <TouchableOpacity
+              style={styles.detectLocationButton}
+              onPress={() => {
+                setShowCityModal(false);
+                getCurrentLocation();
+              }}
+            >
+              <Icon name="my-location" size={20} color="#4A90E2" />
+              <Text style={styles.detectLocationText}>Detect My Location</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -125,14 +414,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingVertical: 16,
     backgroundColor: '#4A90E2',
   },
-  menuIcon: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+  menuButton: {
+    padding: 4,
   },
   appTitle: {
     fontSize: 22,
@@ -146,14 +432,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-  },
-  locationIcon: {
-    fontSize: 16,
-    marginRight: 4,
+    minWidth: 100,
+    maxWidth: 140,
   },
   locationText: {
     color: '#4A90E2',
     fontWeight: '500',
+    fontSize: 14,
+    marginHorizontal: 6,
+    flexShrink: 1,
   },
   greetingContainer: {
     paddingHorizontal: 16,
@@ -171,6 +458,37 @@ const styles = StyleSheet.create({
   greetingSubtitle: {
     fontSize: 16,
     color: '#6B7280',
+    marginBottom: 12,
+  },
+  addressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+  },
+  addressText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 8,
+    flex: 1,
+  },
+  enableLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4A90E2',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    justifyContent: 'center',
+  },
+  enableLocationText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   actionGrid: {
     flexDirection: 'row',
@@ -180,9 +498,8 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     width: '48%',
-    height: 150,
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     marginBottom: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -192,31 +509,48 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  actionIcon: {
-    fontSize: 40,
-    marginBottom: 8,
+  iconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   actionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 4,
+    textAlign: 'center',
   },
   actionSubtitle: {
     fontSize: 14,
     color: '#6B7280',
+    textAlign: 'center',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    marginTop: 8,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    marginHorizontal: 16,
-    marginBottom: 12,
     color: '#1F2937',
   },
-  recentCard: {
+  seeAllText: {
+    fontSize: 14,
+    color: '#4A90E2',
+    fontWeight: '500',
+  },
+  servicesCard: {
     marginHorizontal: 16,
-    marginBottom: 100,
-    padding: 20,
+    marginBottom: 20,
+    padding: 16,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     shadowColor: '#000',
@@ -225,35 +559,67 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  recentContent: {
+  serviceItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  historyIcon: {
-    fontSize: 32,
+  serviceIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
-    color: '#6B7280',
   },
-  recentTextContainer: {
+  serviceInfo: {
     flex: 1,
+  },
+  serviceName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  servicePrice: {
+    fontSize: 14,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  recentCard: {
+    marginHorizontal: 16,
+    marginBottom: 100,
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   recentTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1F2937',
+    marginTop: 16,
+    marginBottom: 8,
   },
   recentSubtitle: {
     fontSize: 14,
     color: '#6B7280',
-    marginTop: 4,
+    textAlign: 'center',
+    marginBottom: 20,
   },
   bookButton: {
     backgroundColor: '#4A90E2',
-    paddingVertical: 12,
     paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 8,
-    alignItems: 'center',
   },
   bookButtonText: {
     color: '#FFFFFF',
@@ -263,7 +629,7 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 80,
+    bottom: 20,
     backgroundColor: '#4A90E2',
     width: 60,
     height: 60,
@@ -276,8 +642,64 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  fabIcon: {
-    fontSize: 28,
-    color: '#FFFFFF',
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  cityItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  cityName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1F2937',
+  },
+  cityState: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginHorizontal: 16,
+  },
+  detectLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  detectLocationText: {
+    fontSize: 16,
+    color: '#4A90E2',
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
