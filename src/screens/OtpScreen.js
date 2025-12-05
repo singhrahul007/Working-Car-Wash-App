@@ -182,7 +182,7 @@ export default function OtpScreen() {
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Amount:</Text>
-              <Text style={styles.amount}>${service.price}</Text>
+              <Text style={styles.amount}>Rs.{service.price}</Text>
             </View>
           </View>
         )}

@@ -52,7 +52,7 @@ export default function CartScreen() {
                   <View style={styles.itemDetails}>
                     <Text variant="titleMedium" style={styles.itemName}>{item.name}</Text>
                     <Text variant="titleMedium" style={styles.itemPrice}>
-                      ${(item.price * item.quantity).toFixed(2)}
+                      Rs.{(item.price * item.quantity).toFixed(2)}
                     </Text>
                     <View style={styles.quantityContainer}>
                       <Button 
@@ -93,17 +93,17 @@ export default function CartScreen() {
                 <Text variant="titleMedium" style={styles.summaryTitle}>Order Summary</Text>
                 <View style={styles.summaryRow}>
                   <Text variant="bodyMedium">Subtotal</Text>
-                  <Text variant="bodyMedium">${subtotal.toFixed(2)}</Text>
+                  <Text variant="bodyMedium">Rs.{subtotal.toFixed(2)}</Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text variant="bodyMedium">Tax (8%)</Text>
-                  <Text variant="bodyMedium">${tax.toFixed(2)}</Text>
+                  <Text variant="bodyMedium">Rs.{tax.toFixed(2)}</Text>
                 </View>
                 <Divider style={styles.summaryDivider} />
                 <View style={[styles.summaryRow, styles.totalRow]}>
                   <Text variant="titleMedium">Total</Text>
                   <Text variant="titleMedium" style={styles.totalAmount}>
-                    ${total.toFixed(2)}
+                    Rs.{total.toFixed(2)}
                   </Text>
                 </View>
               </Card.Content>
@@ -134,7 +134,7 @@ export default function CartScreen() {
             labelStyle={styles.checkoutLabel}
             icon="shopping-cart-checkout"
           >
-            Checkout - ${total.toFixed(2)}
+            Checkout - Rs.{total.toFixed(2)}
           </Button>
         </View>
       )}

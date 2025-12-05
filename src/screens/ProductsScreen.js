@@ -132,7 +132,7 @@ export default function ProductsScreen() {
                   <Text style={styles.rating}>⭐ {product.rating}</Text>
                   <Text style={styles.reviews}>({product.reviews})</Text>
                 </View>
-                <Text style={styles.productPrice}>${product.price}</Text>
+                <Text style={styles.productPrice}>Rs. {product.price}</Text>
                 <TouchableOpacity 
                   style={styles.addButton}
                   onPress={() => addToCart(product)}
@@ -152,7 +152,7 @@ export default function ProductsScreen() {
             <Text style={styles.summaryLabel}>
               {cart.length} item{cart.length > 1 ? 's' : ''} in cart
             </Text>
-            <Text style={styles.summaryTotal}>${getTotal()}</Text>
+            <Text style={styles.summaryTotal}>Rs. {getTotal()}</Text>
           </View>
           <TouchableOpacity 
             style={styles.checkoutButton}

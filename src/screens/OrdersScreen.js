@@ -4,9 +4,9 @@ import { Text, Card, Button, List, Divider } from 'react-native-paper';
 
 export default function OrdersScreen() {
   const orders = [
-    { id: 1, service: 'Premium Car Wash', date: 'Today, 3:00 PM', status: 'In Progress', price: '$45' },
-    { id: 2, service: 'Basic Bike Wash', date: 'Yesterday, 2:00 PM', status: 'Completed', price: '$15' },
-    { id: 3, service: 'Car Wax', date: 'Nov 25', status: 'Delivered', price: '$25' },
+    { id: 1, service: 'Premium Car Wash', date: 'Today, 3:00 PM', status: 'In Progress', price: 'Rs.45' },
+    { id: 2, service: 'Basic Bike Wash', date: 'Yesterday, 2:00 PM', status: 'Completed', price: 'Rs.15' },
+    { id: 3, service: 'Car Wax', date: 'Nov 25', status: 'Delivered', price: 'Rs.25' },
   ];
 
   const getStatusColor = (status) => {

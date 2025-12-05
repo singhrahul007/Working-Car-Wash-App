@@ -66,7 +66,7 @@ export default function BookingScreen() {
               onPress={() => setSelectedService(service)}
             >
               <Text style={styles.serviceName}>{service.name}</Text>
-              <Text style={styles.servicePrice}>${service.price}</Text>
+              <Text style={styles.servicePrice}>Rs.{service.price}</Text>
               <Text style={styles.serviceDuration}>{service.duration}</Text>
               {selectedService?.id === service.id && (
                 <View style={styles.selectedIndicator}>
@@ -135,7 +135,7 @@ export default function BookingScreen() {
             </View>
             <View style={[styles.summaryRow, styles.totalRow]}>
               <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalPrice}>${selectedService.price}</Text>
+              <Text style={styles.totalPrice}>Rs.{selectedService.price}</Text>
             </View>
           </View>
         )}
@@ -151,7 +151,7 @@ export default function BookingScreen() {
         disabled={!selectedService || !phoneNumber}
       >
         <Text style={styles.bookButtonText}>
-          {selectedService ? `Book Now - $${selectedService.price}` : 'Select Service'}
+          {selectedService ? `Book Now - Rs.${selectedService.price}` : 'Select Service'}
         </Text>
       </TouchableOpacity>
     </SafeAreaView>

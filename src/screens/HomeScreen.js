@@ -235,7 +235,7 @@ export default function HomeScreen() {
         {/* Greeting */}
         <View style={styles.greetingContainer}>
           <Text style={styles.greetingTitle}>
-            {city !== 'Select City' ? `Hi! Welcome to ${city}` : 'Hi! Welcome to CarWash'}
+            {city !== 'Select City' ? `Hi! Welcome to ${city}` : 'Hi! Welcome to Royal Services'}
           </Text>
           <Text style={styles.greetingSubtitle}>
             Book a wash or buy products fast.
