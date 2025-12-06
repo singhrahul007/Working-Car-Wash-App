@@ -24,11 +24,11 @@ export default function ProfileScreen() {
   
   // User State
   const [user, setUser] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
+    name: 'Rahul Singh',
+    email: 'rahul.singh@washingexpress.com',
     phone: '+91 98765 43210',
     profileImage: null,
-    joinedDate: '15 Jan 2023',
+    joinedDate: '15 Jan 2025',
     totalBookings: 12,
     loyaltyPoints: 450,
   });
@@ -574,9 +574,9 @@ export default function ProfileScreen() {
 
         {/* App Info */}
         <View style={styles.appInfo}>
-          <Text style={styles.appName}>CarWash India</Text>
+          <Text style={styles.appName}>Washing Express India</Text>
           <Text style={styles.appVersion}>Version 1.0.0</Text>
-          <Text style={styles.appCopyright}>© 2024 CarWash India. All rights reserved.</Text>
+          <Text style={styles.appCopyright}>© 2024 WashingExpress India. All rights reserved.</Text>
           <Text style={styles.memberSince}>Member since {user.joinedDate}</Text>
         </View>
 

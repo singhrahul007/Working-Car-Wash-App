@@ -345,17 +345,17 @@ export default function SupportScreen() {
             onPress={() => Linking.openURL('tel:+911234567890')}
           >
             <Icon name="phone" size={20} color="#FFFFFF" />
-            <Text style={styles.emergencyButtonText}>Call Emergency: +91 123 456 7890</Text>
+            <Text style={styles.emergencyButtonText}>Call Emergency: +91 9899123456</Text>
           </TouchableOpacity>
         </View>
 
         {/* Company Info */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>CarWash India</Text>
+          <Text style={styles.infoTitle}>Washing Express India</Text>
           <View style={styles.infoRow}>
             <Icon name="map-marker" size={18} color="#666" />
             <Text style={styles.infoText}>
-              123 Service Street, Mumbai, Maharashtra 400001
+              Garu City Noida Extension, Noida, Uttar Pradesh 201308
             </Text>
           </View>
           <View style={styles.infoRow}>
@@ -367,7 +367,7 @@ export default function SupportScreen() {
           <View style={styles.infoRow}>
             <Icon name="email" size={18} color="#666" />
             <Text style={styles.infoText}>
-              support@carwashindia.com
+              support@washingExpress.com
             </Text>
           </View>
         </View>
