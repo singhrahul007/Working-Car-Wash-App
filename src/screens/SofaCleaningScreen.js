@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   StatusBar,
   SafeAreaView,
   TextInput,
@@ -12,19 +12,20 @@ import {
   Alert,
   Modal
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function BookingScreen() {
-  const route = useRoute();
+export default function SofaCleaningScreen() {
   const navigation = useNavigation();
-  const { vehicle = 'car' } = route.params || {};
   
-  const [selectedServices, setSelectedServices] = useState([]); // Changed to array for multi-select
+  const [selectedServices, setSelectedServices] = useState([]);
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [sofaType, setSofaType] = useState('');
+  const [sofaCount, setSofaCount] = useState(1);
   const [date, setDate] = useState(new Date());
   const [time, setTime] = useState(() => {
     const initialTime = new Date();
@@ -37,30 +38,60 @@ export default function BookingScreen() {
   const [formattedDate, setFormattedDate] = useState('Today');
   const [formattedTime, setFormattedTime] = useState('3:00 PM');
 
-  // Services for Car Wash
-  const carServices = [
-    { id: 1, name: 'Basic Wash (Bucket wash)', price: 299, duration: '45 mins' },
-    { id: 2, name: 'Premium Wash (Water Wash)', price: 499, duration: '1 hour' },
-    { id: 3, name: 'Interior Cleaning', price: 499, duration: '1 hour' },
-    { id: 4, name: 'Full Service (Water Wash + Interior)', price: 699, duration: '2 hours' },
-    { id: 5, name: 'Engine Wash', price: 399, duration: '30 mins' },
-    { id: 6, name: 'Waxing & Polishing', price: 899, duration: '1.5 hours' },
-    { id: 7, name: 'AC Service & Cleaning', price: 799, duration: '1 hour' },
-    { id: 8, name: 'Tire Shine & Cleaning', price: 199, duration: '20 mins' },
+  // Sofa Types
+  const sofaTypes = ['2-Seater', '3-Seater', 'Sectional', 'L-Shaped', 'Recliner', 'Leather', 'Fabric'];
+  
+  // Sofa Cleaning Services
+  const services = [
+    { 
+      id: 1, 
+      name: 'Basic Sofa Cleaning', 
+      price: 799, 
+      duration: '1.5 hours', 
+      includes: 'Vacuuming, Spot Cleaning, Deodorizing',
+      type: 'basic'
+    },
+    { 
+      id: 2, 
+      name: 'Deep Sofa Cleaning', 
+      price: 1299, 
+      duration: '2.5 hours', 
+      includes: 'Steam Cleaning, Stain Removal, Fabric Protection',
+      type: 'deep'
+    },
+    { 
+      id: 3, 
+      name: 'Premium Sofa Cleaning', 
+      price: 1899, 
+      duration: '3 hours', 
+      includes: 'Complete Restoration, Odor Removal, UV Treatment',
+      type: 'premium'
+    },
+    { 
+      id: 4, 
+      name: 'Leather Sofa Care', 
+      price: 1499, 
+      duration: '2 hours', 
+      includes: 'Leather Conditioning, Polish, Protection',
+      type: 'leather'
+    },
+    { 
+      id: 5, 
+      name: 'Sofa Sanitization', 
+      price: 599, 
+      duration: '1 hour', 
+      includes: 'Germ Protection, Anti-bacterial Treatment',
+      type: 'sanitization'
+    },
+    { 
+      id: 6, 
+      name: 'Stain Removal', 
+      price: 399, 
+      duration: '45 mins', 
+      includes: 'Targeted Stain Treatment',
+      type: 'stain'
+    },
   ];
-
-  // Services for Bike Wash
-  const bikeServices = [
-    { id: 1, name: 'Basic Wash (Bucket wash)', price: 99, duration: '30 mins' },
-    { id: 2, name: 'Premium Wash (Water Wash)', price: 199, duration: '45 mins' },
-    { id: 3, name: 'Chain Cleaning & Lubrication', price: 149, duration: '30 mins' },
-    { id: 4, name: 'Complete Bike Service', price: 599, duration: '2 hours' },
-    { id: 5, name: 'Engine Cleaning', price: 249, duration: '45 mins' },
-    { id: 6, name: 'Polish & Wax', price: 349, duration: '1 hour' },
-  ];
-
-  // Select services based on vehicle type
-  const services = vehicle === 'car' ? carServices : bikeServices;
 
   // Format date for display
   useEffect(() => {
@@ -88,7 +119,7 @@ export default function BookingScreen() {
   }, [time]);
 
   // Calculate total price
-  const totalPrice = selectedServices.reduce((sum, service) => sum + service.price, 0);
+  const totalPrice = selectedServices.reduce((sum, service) => sum + service.price, 0) * sofaCount;
 
   const showDatepicker = () => {
     setCurrentPickerValue(date);
@@ -123,11 +154,21 @@ export default function BookingScreen() {
     const isSelected = selectedServices.some(s => s.id === service.id);
     
     if (isSelected) {
-      // Remove service if already selected
       setSelectedServices(prev => prev.filter(s => s.id !== service.id));
     } else {
-      // Add service if not selected
       setSelectedServices(prev => [...prev, service]);
+    }
+  };
+
+  const increaseCount = () => {
+    if (sofaCount < 5) {
+      setSofaCount(prev => prev + 1);
+    }
+  };
+
+  const decreaseCount = () => {
+    if (sofaCount > 1) {
+      setSofaCount(prev => prev - 1);
     }
   };
 
@@ -139,11 +180,12 @@ export default function BookingScreen() {
       const newBooking = {
         id: Date.now(),
         ...bookingData,
-        status: 'Upcoming',
+        category: 'sofa-cleaning',
+        status: 'Confirmed',
         bookingDate: new Date().toISOString(),
       };
       
-      bookings.unshift(newBooking); // Add to beginning
+      bookings.unshift(newBooking);
       await AsyncStorage.setItem('@carwash_bookings', JSON.stringify(bookings));
     } catch (error) {
       console.log('Error saving booking:', error);
@@ -151,13 +193,28 @@ export default function BookingScreen() {
   };
 
   const handleBookNow = async () => {
-    if (selectedServices.length === 0 || !phoneNumber) {
-      Alert.alert('Incomplete Booking', 'Please select at least one service and enter your phone number.');
+    if (selectedServices.length === 0) {
+      Alert.alert('Select Service', 'Please select at least one service.');
+      return;
+    }
+
+    if (!phoneNumber) {
+      Alert.alert('Phone Required', 'Please enter your phone number.');
       return;
     }
 
     if (phoneNumber.length < 10) {
-      Alert.alert('Invalid Phone', 'Please enter a valid phone number.');
+      Alert.alert('Invalid Phone', 'Please enter a valid 10-digit phone number.');
+      return;
+    }
+
+    if (!address.trim()) {
+      Alert.alert('Address Required', 'Please enter your address for service.');
+      return;
+    }
+
+    if (!sofaType) {
+      Alert.alert('Sofa Type Required', 'Please select your sofa type.');
       return;
     }
 
@@ -165,7 +222,10 @@ export default function BookingScreen() {
     const bookingData = {
       services: selectedServices,
       phone: phoneNumber,
-      vehicle,
+      address,
+      sofaType,
+      sofaCount,
+      category: 'Sofa Cleaning',
       date: formattedDate,
       time: formattedTime,
       totalPrice,
@@ -175,10 +235,13 @@ export default function BookingScreen() {
     await saveBookingToHistory(bookingData);
 
     // Navigate to OTP screen
-    navigation.navigate('Otp', { 
+    navigation.navigate('Otp', {
       phone: phoneNumber,
       services: selectedServices,
-      vehicle,
+      category: 'Sofa Cleaning',
+      address,
+      sofaType,
+      sofaCount,
       date: formattedDate,
       time: formattedTime,
       totalPrice
@@ -205,13 +268,13 @@ export default function BookingScreen() {
                 style={styles.iosPicker}
               />
               <View style={styles.modalButtons}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalCancelButton}
                   onPress={() => setShowPicker(false)}
                 >
                   <Text style={styles.modalCancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalDoneButton}
                   onPress={() => {
                     if (pickerMode === 'date') {
@@ -247,29 +310,29 @@ export default function BookingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#4A90E2" barStyle="light-content" />
+      <StatusBar backgroundColor="#8B4513" barStyle="light-content" />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButtonContainer}
             onPress={() => navigation.goBack()}
           >
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Book {vehicle === 'car' ? 'Car' : 'Bike'} Wash</Text>
+          <Text style={styles.headerTitle}>Sofa Cleaning</Text>
           <View style={{ width: 40 }} />
         </View>
 
         {/* Service Selection */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Select Services</Text>
+          <Text style={styles.sectionTitle}>Select Cleaning Services</Text>
           <Text style={styles.selectCount}>
             {selectedServices.length} selected
           </Text>
         </View>
-        <Text style={styles.sectionSubtitle}>Choose one or more services:</Text>
+        <Text style={styles.sectionSubtitle}>Professional sofa cleaning & restoration:</Text>
         
         <View style={styles.servicesContainer}>
           {services.map((service) => {
@@ -286,7 +349,18 @@ export default function BookingScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.serviceContent}>
-                  <Text style={styles.serviceName}>{service.name}</Text>
+                  <View style={styles.serviceHeader}>
+                    <Text style={styles.serviceName}>{service.name}</Text>
+                    <View style={[
+                      styles.typeBadge,
+                      { backgroundColor: getTypeColor(service.type) }
+                    ]}>
+                      <Text style={styles.typeText}>
+                        {service.type.charAt(0).toUpperCase() + service.type.slice(1)}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.serviceIncludes}>{service.includes}</Text>
                   <View style={styles.serviceDetails}>
                     <Text style={styles.servicePrice}>Rs.{service.price}</Text>
                     <Text style={styles.serviceDuration}>• {service.duration}</Text>
@@ -298,7 +372,7 @@ export default function BookingScreen() {
                   </View>
                 ) : (
                   <View style={styles.unselectedIndicator}>
-                    <Icon name="add" size={20} color="#4A90E2" />
+                    <Icon name="add" size={20} color="#8B4513" />
                   </View>
                 )}
               </TouchableOpacity>
@@ -306,12 +380,65 @@ export default function BookingScreen() {
           })}
         </View>
 
+        {/* Sofa Details */}
+        <Text style={styles.sectionTitle}>Sofa Information</Text>
+        <View style={styles.sofaDetailsContainer}>
+          <View style={styles.dropdownContainer}>
+            <Text style={styles.dropdownLabel}>Sofa Type *</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
+              {sofaTypes.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.typeButton,
+                    sofaType === type && styles.selectedTypeButton
+                  ]}
+                  onPress={() => setSofaType(type)}
+                >
+                  <Text style={[
+                    styles.typeButtonText,
+                    sofaType === type && styles.selectedTypeButtonText
+                  ]}>
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={styles.countContainer}>
+            <Text style={styles.countLabel}>Number of Sofas</Text>
+            <View style={styles.countSelector}>
+              <TouchableOpacity 
+                style={styles.countButton}
+                onPress={decreaseCount}
+                disabled={sofaCount <= 1}
+              >
+                <Icon name="remove" size={24} color={sofaCount <= 1 ? "#BCAAA4" : "#8B4513"} />
+              </TouchableOpacity>
+              
+              <View style={styles.countDisplay}>
+                <Text style={styles.countText}>{sofaCount}</Text>
+                <Text style={styles.countUnit}>sofa{sofaCount > 1 ? 's' : ''}</Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.countButton}
+                onPress={increaseCount}
+                disabled={sofaCount >= 5}
+              >
+                <Icon name="add" size={24} color={sofaCount >= 5 ? "#BCAAA4" : "#8B4513"} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
         {/* Date & Time Selection */}
-        <Text style={styles.sectionTitle}>Date & Time</Text>
+        <Text style={styles.sectionTitle}>Schedule Service</Text>
         <View style={styles.datetimeContainer}>
           <View style={styles.datetimeCard}>
             <Text style={styles.datetimeLabel}>Date</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.datetimeInput}
               onPress={showDatepicker}
             >
@@ -321,7 +448,7 @@ export default function BookingScreen() {
 
           <View style={styles.datetimeCard}>
             <Text style={styles.datetimeLabel}>Time</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.datetimeInput}
               onPress={showTimepicker}
             >
@@ -330,46 +457,54 @@ export default function BookingScreen() {
           </View>
         </View>
 
-        {/* Contact Info */}
+        {/* Contact Information */}
         <Text style={styles.sectionTitle}>Contact Information</Text>
         <View style={styles.contactContainer}>
           <TextInput
-            style={styles.phoneInput}
-            placeholder="Enter phone number"
+            style={styles.input}
+            placeholder="Enter phone number *"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             keyboardType="phone-pad"
             maxLength={10}
-            returnKeyType="done"
           />
+          
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Enter full address for service *"
+            value={address}
+            onChangeText={setAddress}
+            multiline={true}
+            numberOfLines={3}
+            textAlignVertical="top"
+          />
+          
           <Text style={styles.noteText}>
-            We'll send an OTP to verify your number
+            Our sofa cleaning expert will visit your address at the scheduled time
           </Text>
         </View>
 
         {/* Summary */}
         {selectedServices.length > 0 && (
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Booking Summary</Text>
+            <Text style={styles.summaryTitle}>Service Summary</Text>
             
             {selectedServices.map((service, index) => (
               <View key={index} style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>
                   • {service.name}
                 </Text>
-                <Text style={styles.summaryValue}>Rs.{service.price}</Text>
+                <Text style={styles.summaryValue}>Rs.{service.price} × {sofaCount}</Text>
               </View>
             ))}
             
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Vehicle</Text>
-              <Text style={styles.summaryValue}>
-                {vehicle === 'car' ? 'Car' : 'Bike'}
-              </Text>
+              <Text style={styles.summaryLabel}>Sofa Type</Text>
+              <Text style={styles.summaryValue}>{sofaType || 'Not selected'}</Text>
             </View>
             
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Date & Time</Text>
+              <Text style={styles.summaryLabel}>Scheduled Time</Text>
               <Text style={styles.summaryValue}>{formattedDate} at {formattedTime}</Text>
             </View>
             
@@ -385,17 +520,17 @@ export default function BookingScreen() {
 
       {/* Book Button */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
             styles.bookButton,
-            (selectedServices.length === 0 || !phoneNumber) && styles.disabledButton
+            (selectedServices.length === 0 || !phoneNumber || !address.trim() || !sofaType) && styles.disabledButton
           ]}
           onPress={handleBookNow}
-          disabled={selectedServices.length === 0 || !phoneNumber}
+          disabled={selectedServices.length === 0 || !phoneNumber || !address.trim() || !sofaType}
         >
           <Text style={styles.bookButtonText}>
-            {selectedServices.length > 0 
-              ? `Book Now - Rs.${totalPrice}` 
+            {selectedServices.length > 0
+              ? `Book Now - Rs.${totalPrice}`
               : 'Select Services'}
           </Text>
         </TouchableOpacity>
@@ -406,10 +541,22 @@ export default function BookingScreen() {
   );
 }
 
+const getTypeColor = (type) => {
+  switch(type) {
+    case 'basic': return '#8B4513';
+    case 'deep': return '#A0522D';
+    case 'premium': return '#D2691E';
+    case 'leather': return '#CD853F';
+    case 'sanitization': return '#DEB887';
+    case 'stain': return '#F4A460';
+    default: return '#8B4513';
+  }
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7FAFC',
+    backgroundColor: '#FFF8F0',
   },
   scrollView: {
     flex: 1,
@@ -420,7 +567,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#8B4513',
   },
   backButtonContainer: {
     padding: 4,
@@ -446,20 +593,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#5D4037',
     marginHorizontal: 16,
     marginTop: 24,
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#8D6E63',
     marginHorizontal: 16,
     marginBottom: 12,
   },
   selectCount: {
     fontSize: 14,
-    color: '#4A90E2',
+    color: '#8B4513',
     fontWeight: '600',
   },
   servicesContainer: {
@@ -472,23 +619,46 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: '#D7CCC8',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   selectedServiceCard: {
-    borderColor: '#4A90E2',
-    backgroundColor: '#F0F7FF',
+    borderColor: '#8B4513',
+    backgroundColor: '#F5E9DE',
   },
   serviceContent: {
     flex: 1,
   },
+  serviceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
   serviceName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 6,
+    color: '#5D4037',
+    flex: 1,
+    marginRight: 8,
+  },
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  typeText: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  serviceIncludes: {
+    fontSize: 13,
+    color: '#8D6E63',
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   serviceDetails: {
     flexDirection: 'row',
@@ -497,15 +667,15 @@ const styles = StyleSheet.create({
   servicePrice: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#4A90E2',
+    color: '#8B4513',
     marginRight: 12,
   },
   serviceDuration: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#8D6E63',
   },
   selectedIndicator: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#8B4513',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -521,7 +691,82 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 10,
     borderWidth: 2,
-    borderColor: '#4A90E2',
+    borderColor: '#8B4513',
+  },
+  sofaDetailsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  dropdownContainer: {
+    marginBottom: 20,
+  },
+  dropdownLabel: {
+    fontSize: 14,
+    color: '#8D6E63',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  typeScroll: {
+    flexGrow: 0,
+  },
+  typeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D7CCC8',
+    marginRight: 8,
+  },
+  selectedTypeButton: {
+    backgroundColor: '#8B4513',
+    borderColor: '#8B4513',
+  },
+  typeButtonText: {
+    fontSize: 14,
+    color: '#8D6E63',
+    fontWeight: '500',
+  },
+  selectedTypeButtonText: {
+    color: '#FFFFFF',
+  },
+  countContainer: {
+    marginBottom: 16,
+  },
+  countLabel: {
+    fontSize: 14,
+    color: '#8D6E63',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  countSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D7CCC8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  countDisplay: {
+    alignItems: 'center',
+    marginHorizontal: 20,
+  },
+  countText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#8B4513',
+  },
+  countUnit: {
+    fontSize: 14,
+    color: '#8D6E63',
+    marginTop: 4,
   },
   datetimeContainer: {
     flexDirection: 'row',
@@ -534,21 +779,21 @@ const styles = StyleSheet.create({
   },
   datetimeLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#8D6E63',
     marginBottom: 8,
     fontWeight: '500',
   },
   datetimeInput: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#D7CCC8',
     borderRadius: 8,
     padding: 14,
     justifyContent: 'center',
   },
   datetimeText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: '#5D4037',
     fontWeight: '500',
   },
   modalOverlay: {
@@ -575,18 +820,18 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#D7CCC8',
     flex: 1,
     marginRight: 8,
     alignItems: 'center',
   },
   modalCancelButtonText: {
-    color: '#6B7280',
+    color: '#8D6E63',
     fontSize: 16,
     fontWeight: '600',
   },
   modalDoneButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#8B4513',
     padding: 12,
     borderRadius: 8,
     flex: 1,
@@ -602,19 +847,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 24,
   },
-  phoneInput: {
+  input: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#D7CCC8',
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
   },
   noteText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#8D6E63',
     fontStyle: 'italic',
+    textAlign: 'center',
   },
   summaryCard: {
     backgroundColor: '#FFFFFF',
@@ -631,7 +881,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#5D4037',
     marginBottom: 16,
   },
   summaryRow: {
@@ -642,49 +892,49 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 15,
-    color: '#1F2937',
+    color: '#5D4037',
     flex: 1,
     marginRight: 10,
   },
   summaryValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1F2937',
+    color: '#5D4037',
   },
   totalRow: {
     marginTop: 8,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: '#D7CCC8',
   },
   totalLabel: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#5D4037',
   },
   totalPrice: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#4A90E2',
+    color: '#8B4513',
   },
   buttonContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#F7FAFC',
+    backgroundColor: '#FFF8F0',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: '#D7CCC8',
   },
   bookButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#8B4513',
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
   },
   disabledButton: {
-    backgroundColor: '#A0C8FF',
+    backgroundColor: '#BCAAA4',
   },
   bookButtonText: {
     color: '#FFFFFF',

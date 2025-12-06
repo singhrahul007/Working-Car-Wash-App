@@ -164,54 +164,231 @@ export default function HomeScreen() {
   };
 
   // Action items for the grid
-  const actionItems = [
-    {
-      id: '1',
-      title: 'Car Wash',
-      subtitle: 'Starting at ₹299',
-      icon: 'local-car-wash',
-      color: '#4A90E2',
-      bgColor: '#E3F2FD',
-      action: () => navigation.navigate('Booking', { vehicle: 'car' })
-    },
-    {
-      id: '2',
-      title: 'Bike Wash',
-      subtitle: 'Starting at ₹149',
-      icon: 'two-wheeler',
-      color: '#50C878',
-      bgColor: '#E8F5E9',
-      action: () => navigation.navigate('Booking', { vehicle: 'bike' })
-    },
-    {
-      id: '3',
-      title: 'Sofa & Carpet cleaning',
-      subtitle: 'Sofa and carpet cleaning',
-      icon: 'Chair',
-      color: '#FF6B6B',
-      bgColor: '#FFEBEE',
-      action: () => navigation.navigate('Products')
-    },
-    {
-      id: '4',
-      title: 'AC Services',
-      subtitle: 'Get Help',
-      icon: 'AcUnit',
-      color: '#FFA500',
-      bgColor: '#FFF3E0',
-      action: () => navigation.navigate('Support')
-    },
-     {
-      id: '5',
-      title: 'Support',
-      subtitle: 'Get Help',
-      icon: 'help-outline',
-      color: '#FFA500',
-      bgColor: '#FFF3E0',
-      action: () => navigation.navigate('Support')
-    },
-  ];
+  // const actionItems = [
+  //   {
+  //     id: '1',
+  //     title: 'Car Wash',
+  //     subtitle: 'Starting at ₹299',
+  //     icon: 'local-car-wash',
+  //     color: '#4A90E2',
+  //     bgColor: '#E3F2FD',
+  //     action: () => navigation.navigate('Booking', { vehicle: 'car' })
+  //   },
+  //   {
+  //     id: '2',
+  //     title: 'Bike Wash',
+  //     subtitle: 'Starting at ₹149',
+  //     icon: 'two-wheeler',
+  //     color: '#50C878',
+  //     bgColor: '#E8F5E9',
+  //     action: () => navigation.navigate('Booking', { vehicle: 'bike' })
+  //   },
+  //   {
+  //     id: '3',
+  //     title: 'Sofa Cleaning',
+  //     subtitle: 'Sofa and carpet cleaning',
+  //     icon: 'weekend',
+  //     color: '#FF6B6B',
+  //     bgColor: '#FFEBEE',
+  //     action: () => navigation.navigate('SofaCleaning')
+  //   },
+  //   {
+  //     id: '4',
+  //     title: 'Carpet Cleaning',
+  //     subtitle: 'Sofa and carpet cleaning',
+  //     icon: 'weekend',
+  //     color: '#FF6B6B',
+  //     bgColor: '#FFEBEE',
+  //     action: () => navigation.navigate('CarpetCleaning')
+  //   },
+  //   {
+  //     id: '5',
+  //     title: 'AC Services',
+  //     subtitle: 'Get Help',
+  //     icon: 'ac-unit',
+  //     color: '#FFA500',
+  //     bgColor: '#FFF3E0',
+  //     action: () => navigation.navigate('ACService')
+  //   },
+  //    {
+  //     id: '6',
+  //     title: 'Support',
+  //     subtitle: 'Get Help',
+  //     icon: 'help-outline',
+  //     color: '#FFA500',
+  //     bgColor: '#FFF3E0',
+  //     action: () => navigation.navigate('Support')
+  //   },
+  // ];
 
+//   const actionItems = [
+//   {
+//     id: '1',
+//     title: 'Car Wash',
+//     subtitle: 'Starting at ₹299',
+//     icon: 'local-car-wash',
+//     color: '#2196F3', // Blue
+//     bgColor: '#E3F2FD',
+//     action: () => navigation.navigate('Booking', { vehicle: 'car' })
+//   },
+//   {
+//     id: '2',
+//     title: 'Bike Wash',
+//     subtitle: 'Starting at ₹149',
+//     icon: 'two-wheeler',
+//     color: '#4CAF50', // Green
+//     bgColor: '#E8F5E9',
+//     action: () => navigation.navigate('Booking', { vehicle: 'bike' })
+//   },
+//   {
+//     id: '3',
+//     title: 'Sofa Cleaning',
+//     subtitle: 'Professional Sofa Wash',
+//     icon: 'weekend',
+//     color: '#795548', // Brown
+//     bgColor: '#EFEBE9',
+//     action: () => navigation.navigate('SofaCleaning')
+//   },
+//   {
+//     id: '4',
+//     title: 'Carpet Cleaning',
+//     subtitle: 'Carpet Wash & Care',
+//     icon: 'carpet',
+//     color: '#388E3C', // Dark Green
+//     bgColor: '#E8F5E9',
+//     action: () => navigation.navigate('CarpetCleaning')
+//   },
+//   {
+//     id: '5',
+//     title: 'AC Services',
+//     subtitle: 'Repair & Maintenance',
+//     icon: 'ac-unit',
+//     color: '#0288D1', // Light Blue
+//     bgColor: '#E1F5FE',
+//     action: () => navigation.navigate('ACService')
+//   },
+//   {
+//     id: '6',
+//     title: 'Support',
+//     subtitle: 'Get Help',
+//     icon: 'help-outline',
+//     color: '#F57C00', // Orange
+//     bgColor: '#FFF3E0',
+//     action: () => navigation.navigate('Support')
+//   },
+// ];
+// const actionItems = [
+//   {
+//     id: '1',
+//     title: 'Car Wash',
+//     subtitle: 'Starting at ₹299',
+//     icon: 'local-car-wash',
+//     color: '#4A90E2', // Soft Blue
+//     bgColor: '#F0F8FF',
+//     action: () => navigation.navigate('Booking', { vehicle: 'car' })
+//   },
+//   {
+//     id: '2',
+//     title: 'Bike Wash',
+//     subtitle: 'Starting at ₹149',
+//     icon: 'two-wheeler',
+//     color: '#50C878', // Mint Green
+//     bgColor: '#F0FFF4',
+//     action: () => navigation.navigate('Booking', { vehicle: 'bike' })
+//   },
+//   {
+//     id: '3',
+//     title: 'Sofa Cleaning',
+//     subtitle: 'Professional Sofa Wash',
+//     icon: 'weekend',
+//     color: '#D2691E', // Chocolate
+//     bgColor: '#FFF8F0',
+//     action: () => navigation.navigate('SofaCleaning')
+//   },
+//   {
+//     id: '4',
+//     title: 'Carpet Cleaning',
+//     subtitle: 'Carpet Wash & Care',
+//     icon: 'carpet',
+//     color: '#6B8E23', // Olive Drab
+//     bgColor: '#F8FFF0',
+//     action: () => navigation.navigate('CarpetCleaning')
+//   },
+//   {
+//     id: '5',
+//     title: 'AC Services',
+//     subtitle: 'Repair & Maintenance',
+//     icon: 'ac-unit',
+//     color: '#1E90FF', // Dodger Blue
+//     bgColor: '#F0F8FF',
+//     action: () => navigation.navigate('ACService')
+//   },
+//   {
+//     id: '6',
+//     title: 'Support',
+//     subtitle: 'Get Help',
+//     icon: 'help-outline',
+//     color: '#FF8C00', // Dark Orange
+//     bgColor: '#FFF8F0',
+//     action: () => navigation.navigate('Support')
+//   },
+// ];
+const actionItems = [
+  {
+    id: '1',
+    title: 'Car Wash',
+    subtitle: 'Starting at ₹299',
+    icon: 'local-car-wash',
+    color: '#2196F3', // Blue 500
+    bgColor: '#E3F2FD', // Blue 50
+    action: () => navigation.navigate('Booking', { vehicle: 'car' })
+  },
+  {
+    id: '2',
+    title: 'Bike Wash',
+    subtitle: 'Starting at ₹149',
+    icon: 'two-wheeler',
+    color: '#4CAF50', // Green 500
+    bgColor: '#E8F5E9', // Green 50
+    action: () => navigation.navigate('Booking', { vehicle: 'bike' })
+  },
+  {
+    id: '3',
+    title: 'Sofa Cleaning',
+    subtitle: 'Professional Sofa Wash',
+    icon: 'weekend',
+    color: '#795548', // Brown 500
+    bgColor: '#EFEBE9', // Brown 50
+    action: () => navigation.navigate('SofaCleaning')
+  },
+  {
+    id: '4',
+    title: 'Carpet Cleaning',
+    subtitle: 'Carpet Wash & Care',
+    icon: 'layers',
+    color: '#607D8B', // Blue Grey 500
+    bgColor: '#ECEFF1', // Blue Grey 50
+    action: () => navigation.navigate('CarpetCleaning')
+  },
+  {
+    id: '5',
+    title: 'AC Services',
+    subtitle: 'Repair & Maintenance',
+    icon: 'ac-unit',
+    color: '#03A9F4', // Light Blue 500
+    bgColor: '#E1F5FE', // Light Blue 50
+    action: () => navigation.navigate('ACService')
+  },
+  {
+    id: '6',
+    title: 'Support',
+    subtitle: 'Get Help',
+    icon: 'help-outline',
+    color: '#FF9800', // Orange 500
+    bgColor: '#FFF3E0', // Orange 50
+    action: () => navigation.navigate('Support')
+  },
+];
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#4A90E2" barStyle="light-content" />
@@ -342,9 +519,9 @@ export default function HomeScreen() {
           </Text>
           <TouchableOpacity 
             style={styles.bookButton}
-            onPress={() => navigation.navigate('Booking', { vehicle: 'car' })}
+            onPress={() => navigation.navigate('Order')}
           >
-            <Text style={styles.bookButtonText}>Book Now</Text>
+            <Text style={styles.bookButtonText}>View All Booking</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

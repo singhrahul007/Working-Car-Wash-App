@@ -1,159 +1,214 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   StatusBar,
   SafeAreaView,
-  TextInput 
+  FlatList,
+  RefreshControl,
+  Alert
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
-export default function BookingScreen() {
-  const route = useRoute();
+export default function OrderScreen() {
   const navigation = useNavigation();
-  const { vehicle = 'car' } = route.params || {};
-  
-  const [selectedService, setSelectedService] = useState(null);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [date, setDate] = useState('Today');
-  const [time, setTime] = useState('3:00 PM');
+  const [bookings, setBookings] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const services = [
-    { id: 1, name: 'Basic Wash (Bucket wash)', price: vehicle === 'car' ? 299 : 99, duration: '' },
-    { id: 2, name: 'Premium Wash', price: vehicle === 'car' ? 499 : 199, duration: '' },
-    { id: 3, name: 'Interior Cleaning', price: vehicle === 'car' ? 499 : 199, duration: '' },
-    { id: 4, name: 'Full Service', price: vehicle === 'car' ? 699 : 199, duration: '' },
-  ];
+  // Load bookings on focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadBookings();
+      return () => {};
+    }, [])
+  );
 
-  const handleBookNow = () => {
-    // Navigate to OTP screen or show OTP modal
-    navigation.navigate('Otp', { 
-      phone: phoneNumber,
-      service: selectedService,
+  const loadBookings = async () => {
+    try {
+      setLoading(true);
+      const savedBookings = await AsyncStorage.getItem('@carwash_bookings');
+      if (savedBookings) {
+        setBookings(JSON.parse(savedBookings));
+      }
+    } catch (error) {
+      console.log('Error loading bookings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadBookings();
+    setRefreshing(false);
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Confirmed': return '#10B981';
+      case 'Upcoming': return '#4A90E2';
+      case 'In Progress': return '#FFA500';
+      case 'Completed': return '#6B7280';
+      case 'Cancelled': return '#EF4444';
+      default: return '#6B7280';
+    }
+  };
+
+  const cancelBooking = async (bookingId) => {
+    Alert.alert(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            try {
+              const updatedBookings = bookings.map(booking =>
+                booking.id === bookingId
+                  ? { ...booking, status: 'Cancelled' }
+                  : booking
+              );
+              
+              setBookings(updatedBookings);
+              await AsyncStorage.setItem('@carwash_bookings', JSON.stringify(updatedBookings));
+            } catch (error) {
+              console.log('Error cancelling booking:', error);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const rebookService = (services, vehicle) => {
+    navigation.navigate('Booking', { 
       vehicle,
-      date,
-      time 
+      preselectedServices: services 
     });
   };
+
+  const renderBookingItem = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.bookingCard}
+      activeOpacity={0.7}
+    >
+      <View style={styles.bookingHeader}>
+        <View style={styles.bookingIdContainer}>
+          <Icon name="receipt" size={16} color="#4A90E2" />
+          <Text style={styles.bookingId}>Order #{item.id.toString().slice(-6)}</Text>
+        </View>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+            {item.status}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.bookingDetails}>
+        <View style={styles.detailRow}>
+          <Icon name="directions-car" size={16} color="#6B7280" />
+          <Text style={styles.detailText}>{item.vehicle === 'car' ? 'Car' : 'Bike'} Wash</Text>
+        </View>
+        
+        <View style={styles.detailRow}>
+          <Icon name="event" size={16} color="#6B7280" />
+          <Text style={styles.detailText}>{item.date} at {item.time}</Text>
+        </View>
+        
+        <View style={styles.detailRow}>
+          <Icon name="phone" size={16} color="#6B7280" />
+          <Text style={styles.detailText}>{item.phone}</Text>
+        </View>
+      </View>
+
+      <View style={styles.servicesContainer}>
+        <Text style={styles.servicesTitle}>Services:</Text>
+        {item.services.map((service, index) => (
+          <View key={index} style={styles.serviceItem}>
+            <Text style={styles.serviceName}>• {service.name}</Text>
+            <Text style={styles.servicePrice}>Rs.{service.price}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.bookingFooter}>
+        <View>
+          <Text style={styles.totalLabel}>Total Amount</Text>
+          <Text style={styles.totalPrice}>Rs.{item.totalPrice || item.services.reduce((sum, s) => sum + s.price, 0)}</Text>
+        </View>
+        
+        <View style={styles.actionButtons}>
+          {item.status !== 'Cancelled' && item.status !== 'Completed' && (
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={() => cancelBooking(item.id)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          )}
+          
+          <TouchableOpacity 
+            style={styles.rebookButton}
+            onPress={() => rebookService(item.services, item.vehicle)}
+          >
+            <Text style={styles.rebookButtonText}>Book Again</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#4A90E2" barStyle="light-content" />
       
-      <ScrollView style={styles.scrollView}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backButton}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Book {vehicle === 'car' ? 'Car' : 'Bike'} Wash</Text>
-          <View style={{ width: 30 }} />
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Bookings</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-        {/* Service Selection */}
-        <Text style={styles.sectionTitle}>Select Service</Text>
-        <View style={styles.servicesContainer}>
-          {services.map((service) => (
-            <TouchableOpacity
-              key={service.id}
-              style={[
-                styles.serviceCard,
-                selectedService?.id === service.id && styles.selectedServiceCard
-              ]}
-              onPress={() => setSelectedService(service)}
-            >
-              <Text style={styles.serviceName}>{service.name}</Text>
-              <Text style={styles.servicePrice}>Rs.{service.price}</Text>
-              <Text style={styles.serviceDuration}>{service.duration}</Text>
-              {selectedService?.id === service.id && (
-                <View style={styles.selectedIndicator}>
-                  <Text style={styles.selectedText}>✓</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Date & Time */}
-        <Text style={styles.sectionTitle}>Date & Time</Text>
-        <View style={styles.datetimeContainer}>
-          <View style={styles.datetimeCard}>
-            <Text style={styles.datetimeLabel}>Date</Text>
-            <TextInput
-              style={styles.datetimeInput}
-              value={date}
-              onChangeText={setDate}
-              placeholder="Select date"
-            />
-          </View>
-          <View style={styles.datetimeCard}>
-            <Text style={styles.datetimeLabel}>Time</Text>
-            <TextInput
-              style={styles.datetimeInput}
-              value={time}
-              onChangeText={setTime}
-              placeholder="Select time"
-            />
-          </View>
-        </View>
-
-        {/* Contact Info */}
-        <Text style={styles.sectionTitle}>Contact Information</Text>
-        <View style={styles.contactContainer}>
-          <TextInput
-            style={styles.phoneInput}
-            placeholder="Enter phone number"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            keyboardType="phone-pad"
+      <FlatList
+        data={bookings}
+        renderItem={renderBookingItem}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#4A90E2']}
           />
-          <Text style={styles.noteText}>
-            We'll send an OTP to verify your number
-          </Text>
-        </View>
-
-        {/* Summary */}
-        {selectedService && (
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Booking Summary</Text>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Service</Text>
-              <Text style={styles.summaryValue}>{selectedService.name}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Vehicle</Text>
-              <Text style={styles.summaryValue}>
-                {vehicle === 'car' ? 'Car' : 'Bike'}
-              </Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Date & Time</Text>
-              <Text style={styles.summaryValue}>{date} at {time}</Text>
-            </View>
-            <View style={[styles.summaryRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalPrice}>Rs.{selectedService.price}</Text>
-            </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Icon name="receipt" size={80} color="#D1D5DB" />
+            <Text style={styles.emptyTitle}>No Bookings Yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Book your first service to see it here!
+            </Text>
+            <TouchableOpacity 
+              style={styles.bookNowButton}
+              onPress={() => navigation.navigate('Booking', { vehicle: 'car' })}
+            >
+              <Text style={styles.bookNowButtonText}>Book Now</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </ScrollView>
-
-      {/* Book Button */}
-      <TouchableOpacity 
-        style={[
-          styles.bookButton,
-          (!selectedService || !phoneNumber) && styles.disabledButton
-        ]}
-        onPress={handleBookNow}
-        disabled={!selectedService || !phoneNumber}
-      >
-        <Text style={styles.bookButtonText}>
-          {selectedService ? `Book Now - Rs.${selectedService.price}` : 'Select Service'}
-        </Text>
-      </TouchableOpacity>
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -162,9 +217,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F7FAFC',
-  },
-  scrollView: {
-    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -175,171 +227,166 @@ const styles = StyleSheet.create({
     backgroundColor: '#4A90E2',
   },
   backButton: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    padding: 4,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 12,
+  listContent: {
+    padding: 16,
+    paddingBottom: 80,
   },
-  servicesContainer: {
-    paddingHorizontal: 16,
-  },
-  serviceCard: {
+  bookingCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-  },
-  selectedServiceCard: {
-    borderColor: '#4A90E2',
-    backgroundColor: '#F0F7FF',
-  },
-  serviceName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  servicePrice: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#4A90E2',
-    marginBottom: 4,
-  },
-  serviceDuration: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  selectedIndicator: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: '#4A90E2',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  datetimeContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-  },
-  datetimeCard: {
-    width: '48%',
-  },
-  datetimeLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  datetimeInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  contactContainer: {
-    paddingHorizontal: 16,
-    marginTop: 8,
-  },
-  phoneInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  noteText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontStyle: 'italic',
-  },
-  summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    margin: 16,
-    marginTop: 24,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  summaryTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 16,
-  },
-  summaryRow: {
+  bookingHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
-  summaryLabel: {
-    fontSize: 16,
+  bookingIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bookingId: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4A90E2',
+    marginLeft: 6,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  bookingDetails: {
+    marginBottom: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  detailText: {
+    fontSize: 14,
     color: '#6B7280',
+    marginLeft: 8,
   },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1F2937',
-  },
-  totalRow: {
-    marginTop: 8,
+  servicesContainer: {
+    marginBottom: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: '#F3F4F6',
+  },
+  servicesTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  serviceItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  serviceName: {
+    fontSize: 13,
+    color: '#6B7280',
+    flex: 1,
+  },
+  servicePrice: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4A90E2',
+  },
+  bookingFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
   totalLabel: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 2,
   },
   totalPrice: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#4A90E2',
   },
-  bookButton: {
+  actionButtons: {
+    flexDirection: 'row',
+  },
+  cancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    marginRight: 8,
+  },
+  cancelButtonText: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  rebookButton: {
     backgroundColor: '#4A90E2',
-    paddingVertical: 18,
-    marginHorizontal: 16,
-    marginVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
   },
-  disabledButton: {
-    backgroundColor: '#A0C8FF',
-  },
-  bookButtonText: {
+  rebookButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  bookNowButton: {
+    backgroundColor: '#4A90E2',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  bookNowButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

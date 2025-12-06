@@ -10,6 +10,11 @@ import BookingScreen from '../screens/BookingScreen';
 import OtpScreen from '../screens/OtpScreen';
 import ProductsScreen from '../screens/ProductsScreen';
 import OrdersScreen from '../screens/OrdersScreen';
+import ACServiceScreen from '../screens/ACServiceScreen';
+import SofaCleaningScreen from '../screens/SofaCleaningScreen';
+import CarpetCleaningScreen from '../screens/CarpetCleaningScreen';
+import SupportScreen from '../screens/SupportScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -33,23 +38,8 @@ function CartScreen() {
   );
 }
 
-function ProfileScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>👤 Profile</Text>
-      <Text>Your profile will appear here</Text>
-    </View>
-  );
-}
+// s
 
-function SupportScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>❓ Support</Text>
-      <Text>Support features will appear here</Text>
-    </View>
-  );
-}
 
 function CameraScreen() {
   return (
@@ -116,10 +106,10 @@ export default function MainNavigator() {
       <Stack.Screen
         name="Order"
         component={OrdersScreen}
-        options={({ route }) => ({
-          title: `Book ${route.params?.vehicle || 'Car'} Wash`,
-          headerBackTitle: 'Back',
-        })}
+        options={{
+        title: 'My Bookings',
+        headerBackTitle: 'Back',
+      }}
       />
       <Stack.Screen
         name="Otp"
@@ -138,14 +128,6 @@ export default function MainNavigator() {
         }}
       />
       <Stack.Screen
-        name="Support"
-        component={SupportScreen}
-        options={{
-          title: 'Help & Support',
-          headerBackTitle: 'Back',
-        }}
-      />
-      <Stack.Screen
         name="Camera"
         component={CameraScreen}
         options={{
@@ -153,6 +135,39 @@ export default function MainNavigator() {
           headerBackTitle: 'Back',
         }}
       />
+      <Stack.Screen
+        name="ACService"
+        component={ACServiceScreen}
+        options={{
+          title: 'AC Services',
+          headerBackTitle: 'Back',
+        }}
+        />
+        <Stack.Screen
+          name="SofaCleaning"
+          component={SofaCleaningScreen}
+          options={{
+            title: 'Sofa Cleaning',
+            headerBackTitle: 'Back',
+          }}
+        />
+
+        <Stack.Screen
+          name="CarpetCleaning"
+          component={CarpetCleaningScreen}
+          options={{
+            title: 'Carpet Cleaning',
+            headerBackTitle: 'Back',
+          }}
+        />
+        <Stack.Screen
+          name="Support"
+          component={SupportScreen}
+          options={{
+            title: 'Help & Support',
+            headerBackTitle: 'Back',
+          }}
+        />
     </Stack.Navigator>
   );
 }

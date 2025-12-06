@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   StatusBar,
   SafeAreaView,
   TextInput,
@@ -12,19 +12,21 @@ import {
   Alert,
   Modal
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function BookingScreen() {
-  const route = useRoute();
+export default function CarpetCleaningScreen() {
   const navigation = useNavigation();
-  const { vehicle = 'car' } = route.params || {};
   
-  const [selectedServices, setSelectedServices] = useState([]); // Changed to array for multi-select
+  const [selectedServices, setSelectedServices] = useState([]);
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [carpetType, setCarpetType] = useState('');
+  const [carpetSize, setCarpetSize] = useState('small');
+  const [carpetCount, setCarpetCount] = useState(1);
   const [date, setDate] = useState(new Date());
   const [time, setTime] = useState(() => {
     const initialTime = new Date();
@@ -37,30 +39,68 @@ export default function BookingScreen() {
   const [formattedDate, setFormattedDate] = useState('Today');
   const [formattedTime, setFormattedTime] = useState('3:00 PM');
 
-  // Services for Car Wash
-  const carServices = [
-    { id: 1, name: 'Basic Wash (Bucket wash)', price: 299, duration: '45 mins' },
-    { id: 2, name: 'Premium Wash (Water Wash)', price: 499, duration: '1 hour' },
-    { id: 3, name: 'Interior Cleaning', price: 499, duration: '1 hour' },
-    { id: 4, name: 'Full Service (Water Wash + Interior)', price: 699, duration: '2 hours' },
-    { id: 5, name: 'Engine Wash', price: 399, duration: '30 mins' },
-    { id: 6, name: 'Waxing & Polishing', price: 899, duration: '1.5 hours' },
-    { id: 7, name: 'AC Service & Cleaning', price: 799, duration: '1 hour' },
-    { id: 8, name: 'Tire Shine & Cleaning', price: 199, duration: '20 mins' },
+  // Carpet Types
+  const carpetTypes = ['Wool', 'Synthetic', 'Silk', 'Cotton', 'Olefin', 'Nylon', 'Polyester', 'Blend'];
+  
+  // Carpet Sizes
+  const carpetSizes = [
+    { id: 'small', name: 'Small', area: 'Up to 100 sq.ft', priceMultiplier: 1 },
+    { id: 'medium', name: 'Medium', area: '100-200 sq.ft', priceMultiplier: 1.5 },
+    { id: 'large', name: 'Large', area: '200-400 sq.ft', priceMultiplier: 2 },
+    { id: 'xlarge', name: 'Extra Large', area: '400+ sq.ft', priceMultiplier: 3 }
   ];
-
-  // Services for Bike Wash
-  const bikeServices = [
-    { id: 1, name: 'Basic Wash (Bucket wash)', price: 99, duration: '30 mins' },
-    { id: 2, name: 'Premium Wash (Water Wash)', price: 199, duration: '45 mins' },
-    { id: 3, name: 'Chain Cleaning & Lubrication', price: 149, duration: '30 mins' },
-    { id: 4, name: 'Complete Bike Service', price: 599, duration: '2 hours' },
-    { id: 5, name: 'Engine Cleaning', price: 249, duration: '45 mins' },
-    { id: 6, name: 'Polish & Wax', price: 349, duration: '1 hour' },
+  
+  // Carpet Cleaning Services
+  const services = [
+    { 
+      id: 1, 
+      name: 'Basic Carpet Cleaning', 
+      basePrice: 499, 
+      duration: '1 hour', 
+      includes: 'Vacuuming, Spot Cleaning, Deodorizing',
+      type: 'basic'
+    },
+    { 
+      id: 2, 
+      name: 'Deep Carpet Cleaning', 
+      basePrice: 799, 
+      duration: '2 hours', 
+      includes: 'Steam Cleaning, Stain Removal, Fabric Protection',
+      type: 'deep'
+    },
+    { 
+      id: 3, 
+      name: 'Premium Carpet Cleaning', 
+      basePrice: 1199, 
+      duration: '3 hours', 
+      includes: 'Complete Restoration, Odor Removal, UV Treatment',
+      type: 'premium'
+    },
+    { 
+      id: 4, 
+      name: 'Carpet Stain Removal', 
+      basePrice: 299, 
+      duration: '45 mins', 
+      includes: 'Targeted Stain Treatment',
+      type: 'stain'
+    },
+    { 
+      id: 5, 
+      name: 'Carpet Sanitization', 
+      basePrice: 399, 
+      duration: '1 hour', 
+      includes: 'Germ Protection, Anti-bacterial Treatment',
+      type: 'sanitization'
+    },
+    { 
+      id: 6, 
+      name: 'Carpet Deodorizing', 
+      basePrice: 349, 
+      duration: '45 mins', 
+      includes: 'Odor Neutralization, Freshness',
+      type: 'deodorizing'
+    },
   ];
-
-  // Select services based on vehicle type
-  const services = vehicle === 'car' ? carServices : bikeServices;
 
   // Format date for display
   useEffect(() => {
@@ -87,8 +127,16 @@ export default function BookingScreen() {
     setFormattedTime(`${formattedHours}:${formattedMinutes} ${ampm}`);
   }, [time]);
 
+  // Calculate service price based on size
+  const calculateServicePrice = (service) => {
+    const sizeMultiplier = carpetSizes.find(s => s.id === carpetSize)?.priceMultiplier || 1;
+    return service.basePrice * sizeMultiplier;
+  };
+
   // Calculate total price
-  const totalPrice = selectedServices.reduce((sum, service) => sum + service.price, 0);
+  const totalPrice = selectedServices.reduce((sum, service) => {
+    return sum + calculateServicePrice(service);
+  }, 0) * carpetCount;
 
   const showDatepicker = () => {
     setCurrentPickerValue(date);
@@ -123,11 +171,21 @@ export default function BookingScreen() {
     const isSelected = selectedServices.some(s => s.id === service.id);
     
     if (isSelected) {
-      // Remove service if already selected
       setSelectedServices(prev => prev.filter(s => s.id !== service.id));
     } else {
-      // Add service if not selected
       setSelectedServices(prev => [...prev, service]);
+    }
+  };
+
+  const increaseCount = () => {
+    if (carpetCount < 5) {
+      setCarpetCount(prev => prev + 1);
+    }
+  };
+
+  const decreaseCount = () => {
+    if (carpetCount > 1) {
+      setCarpetCount(prev => prev - 1);
     }
   };
 
@@ -139,11 +197,12 @@ export default function BookingScreen() {
       const newBooking = {
         id: Date.now(),
         ...bookingData,
-        status: 'Upcoming',
+        category: 'carpet-cleaning',
+        status: 'Confirmed',
         bookingDate: new Date().toISOString(),
       };
       
-      bookings.unshift(newBooking); // Add to beginning
+      bookings.unshift(newBooking);
       await AsyncStorage.setItem('@carwash_bookings', JSON.stringify(bookings));
     } catch (error) {
       console.log('Error saving booking:', error);
@@ -151,21 +210,48 @@ export default function BookingScreen() {
   };
 
   const handleBookNow = async () => {
-    if (selectedServices.length === 0 || !phoneNumber) {
-      Alert.alert('Incomplete Booking', 'Please select at least one service and enter your phone number.');
+    if (selectedServices.length === 0) {
+      Alert.alert('Select Service', 'Please select at least one service.');
+      return;
+    }
+
+    if (!phoneNumber) {
+      Alert.alert('Phone Required', 'Please enter your phone number.');
       return;
     }
 
     if (phoneNumber.length < 10) {
-      Alert.alert('Invalid Phone', 'Please enter a valid phone number.');
+      Alert.alert('Invalid Phone', 'Please enter a valid 10-digit phone number.');
+      return;
+    }
+
+    if (!address.trim()) {
+      Alert.alert('Address Required', 'Please enter your address for service.');
+      return;
+    }
+
+    if (!carpetType) {
+      Alert.alert('Carpet Type Required', 'Please select your carpet type.');
+      return;
+    }
+
+    if (!carpetSize) {
+      Alert.alert('Carpet Size Required', 'Please select your carpet size.');
       return;
     }
 
     // Save booking to history
     const bookingData = {
-      services: selectedServices,
+      services: selectedServices.map(service => ({
+        ...service,
+        price: calculateServicePrice(service)
+      })),
       phone: phoneNumber,
-      vehicle,
+      address,
+      carpetType,
+      carpetSize: carpetSizes.find(s => s.id === carpetSize)?.name || carpetSize,
+      carpetCount,
+      category: 'Carpet Cleaning',
       date: formattedDate,
       time: formattedTime,
       totalPrice,
@@ -175,10 +261,17 @@ export default function BookingScreen() {
     await saveBookingToHistory(bookingData);
 
     // Navigate to OTP screen
-    navigation.navigate('Otp', { 
+    navigation.navigate('Otp', {
       phone: phoneNumber,
-      services: selectedServices,
-      vehicle,
+      services: selectedServices.map(service => ({
+        ...service,
+        price: calculateServicePrice(service)
+      })),
+      category: 'Carpet Cleaning',
+      address,
+      carpetType,
+      carpetSize: carpetSizes.find(s => s.id === carpetSize)?.name || carpetSize,
+      carpetCount,
       date: formattedDate,
       time: formattedTime,
       totalPrice
@@ -205,13 +298,13 @@ export default function BookingScreen() {
                 style={styles.iosPicker}
               />
               <View style={styles.modalButtons}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalCancelButton}
                   onPress={() => setShowPicker(false)}
                 >
                   <Text style={styles.modalCancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalDoneButton}
                   onPress={() => {
                     if (pickerMode === 'date') {
@@ -247,33 +340,34 @@ export default function BookingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#4A90E2" barStyle="light-content" />
+      <StatusBar backgroundColor="#556B2F" barStyle="light-content" />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButtonContainer}
             onPress={() => navigation.goBack()}
           >
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Book {vehicle === 'car' ? 'Car' : 'Bike'} Wash</Text>
+          <Text style={styles.headerTitle}>Carpet Cleaning</Text>
           <View style={{ width: 40 }} />
         </View>
 
         {/* Service Selection */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Select Services</Text>
+          <Text style={styles.sectionTitle}>Select Cleaning Services</Text>
           <Text style={styles.selectCount}>
             {selectedServices.length} selected
           </Text>
         </View>
-        <Text style={styles.sectionSubtitle}>Choose one or more services:</Text>
+        <Text style={styles.sectionSubtitle}>Professional carpet cleaning & restoration:</Text>
         
         <View style={styles.servicesContainer}>
           {services.map((service) => {
             const isSelected = selectedServices.some(s => s.id === service.id);
+            const servicePrice = calculateServicePrice(service);
             
             return (
               <TouchableOpacity
@@ -286,9 +380,20 @@ export default function BookingScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.serviceContent}>
-                  <Text style={styles.serviceName}>{service.name}</Text>
+                  <View style={styles.serviceHeader}>
+                    <Text style={styles.serviceName}>{service.name}</Text>
+                    <View style={[
+                      styles.typeBadge,
+                      { backgroundColor: getTypeColor(service.type) }
+                    ]}>
+                      <Text style={styles.typeText}>
+                        {service.type.charAt(0).toUpperCase() + service.type.slice(1)}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.serviceIncludes}>{service.includes}</Text>
                   <View style={styles.serviceDetails}>
-                    <Text style={styles.servicePrice}>Rs.{service.price}</Text>
+                    <Text style={styles.servicePrice}>Rs.{servicePrice}</Text>
                     <Text style={styles.serviceDuration}>• {service.duration}</Text>
                   </View>
                 </View>
@@ -298,7 +403,7 @@ export default function BookingScreen() {
                   </View>
                 ) : (
                   <View style={styles.unselectedIndicator}>
-                    <Icon name="add" size={20} color="#4A90E2" />
+                    <Icon name="add" size={20} color="#556B2F" />
                   </View>
                 )}
               </TouchableOpacity>
@@ -306,12 +411,94 @@ export default function BookingScreen() {
           })}
         </View>
 
+        {/* Carpet Details */}
+        <Text style={styles.sectionTitle}>Carpet Information</Text>
+        <View style={styles.carpetDetailsContainer}>
+          <View style={styles.dropdownContainer}>
+            <Text style={styles.dropdownLabel}>Carpet Material *</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
+              {carpetTypes.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.typeButton,
+                    carpetType === type && styles.selectedTypeButton
+                  ]}
+                  onPress={() => setCarpetType(type)}
+                >
+                  <Text style={[
+                    styles.typeButtonText,
+                    carpetType === type && styles.selectedTypeButtonText
+                  ]}>
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={styles.sizeContainer}>
+            <Text style={styles.sizeLabel}>Carpet Size *</Text>
+            <View style={styles.sizeGrid}>
+              {carpetSizes.map((size) => (
+                <TouchableOpacity
+                  key={size.id}
+                  style={[
+                    styles.sizeButton,
+                    carpetSize === size.id && styles.selectedSizeButton
+                  ]}
+                  onPress={() => setCarpetSize(size.id)}
+                >
+                  <Text style={[
+                    styles.sizeButtonText,
+                    carpetSize === size.id && styles.selectedSizeButtonText
+                  ]}>
+                    {size.name}
+                  </Text>
+                  <Text style={[
+                    styles.sizeAreaText,
+                    carpetSize === size.id && styles.selectedSizeAreaText
+                  ]}>
+                    {size.area}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.countContainer}>
+            <Text style={styles.countLabel}>Number of Carpets</Text>
+            <View style={styles.countSelector}>
+              <TouchableOpacity 
+                style={styles.countButton}
+                onPress={decreaseCount}
+                disabled={carpetCount <= 1}
+              >
+                <Icon name="remove" size={24} color={carpetCount <= 1 ? "#A5D6A7" : "#556B2F"} />
+              </TouchableOpacity>
+              
+              <View style={styles.countDisplay}>
+                <Text style={styles.countText}>{carpetCount}</Text>
+                <Text style={styles.countUnit}>carpet{carpetCount > 1 ? 's' : ''}</Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.countButton}
+                onPress={increaseCount}
+                disabled={carpetCount >= 5}
+              >
+                <Icon name="add" size={24} color={carpetCount >= 5 ? "#A5D6A7" : "#556B2F"} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
         {/* Date & Time Selection */}
-        <Text style={styles.sectionTitle}>Date & Time</Text>
+        <Text style={styles.sectionTitle}>Schedule Service</Text>
         <View style={styles.datetimeContainer}>
           <View style={styles.datetimeCard}>
             <Text style={styles.datetimeLabel}>Date</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.datetimeInput}
               onPress={showDatepicker}
             >
@@ -321,7 +508,7 @@ export default function BookingScreen() {
 
           <View style={styles.datetimeCard}>
             <Text style={styles.datetimeLabel}>Time</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.datetimeInput}
               onPress={showTimepicker}
             >
@@ -330,46 +517,61 @@ export default function BookingScreen() {
           </View>
         </View>
 
-        {/* Contact Info */}
+        {/* Contact Information */}
         <Text style={styles.sectionTitle}>Contact Information</Text>
         <View style={styles.contactContainer}>
           <TextInput
-            style={styles.phoneInput}
-            placeholder="Enter phone number"
+            style={styles.input}
+            placeholder="Enter phone number *"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             keyboardType="phone-pad"
             maxLength={10}
-            returnKeyType="done"
           />
+          
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Enter full address for service *"
+            value={address}
+            onChangeText={setAddress}
+            multiline={true}
+            numberOfLines={3}
+            textAlignVertical="top"
+          />
+          
           <Text style={styles.noteText}>
-            We'll send an OTP to verify your number
+            Our carpet cleaning expert will visit your address at the scheduled time
           </Text>
         </View>
 
         {/* Summary */}
         {selectedServices.length > 0 && (
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Booking Summary</Text>
+            <Text style={styles.summaryTitle}>Service Summary</Text>
             
             {selectedServices.map((service, index) => (
               <View key={index} style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>
                   • {service.name}
                 </Text>
-                <Text style={styles.summaryValue}>Rs.{service.price}</Text>
+                <Text style={styles.summaryValue}>Rs.{calculateServicePrice(service)} × {carpetCount}</Text>
               </View>
             ))}
             
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Vehicle</Text>
+              <Text style={styles.summaryLabel}>Carpet Type</Text>
+              <Text style={styles.summaryValue}>{carpetType || 'Not selected'}</Text>
+            </View>
+            
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Carpet Size</Text>
               <Text style={styles.summaryValue}>
-                {vehicle === 'car' ? 'Car' : 'Bike'}
+                {carpetSizes.find(s => s.id === carpetSize)?.name || 'Not selected'}
               </Text>
             </View>
             
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Date & Time</Text>
+              <Text style={styles.summaryLabel}>Scheduled Time</Text>
               <Text style={styles.summaryValue}>{formattedDate} at {formattedTime}</Text>
             </View>
             
@@ -385,17 +587,17 @@ export default function BookingScreen() {
 
       {/* Book Button */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
             styles.bookButton,
-            (selectedServices.length === 0 || !phoneNumber) && styles.disabledButton
+            (selectedServices.length === 0 || !phoneNumber || !address.trim() || !carpetType || !carpetSize) && styles.disabledButton
           ]}
           onPress={handleBookNow}
-          disabled={selectedServices.length === 0 || !phoneNumber}
+          disabled={selectedServices.length === 0 || !phoneNumber || !address.trim() || !carpetType || !carpetSize}
         >
           <Text style={styles.bookButtonText}>
-            {selectedServices.length > 0 
-              ? `Book Now - Rs.${totalPrice}` 
+            {selectedServices.length > 0
+              ? `Book Now - Rs.${totalPrice}`
               : 'Select Services'}
           </Text>
         </TouchableOpacity>
@@ -406,10 +608,22 @@ export default function BookingScreen() {
   );
 }
 
+const getTypeColor = (type) => {
+  switch(type) {
+    case 'basic': return '#556B2F';
+    case 'deep': return '#6B8E23';
+    case 'premium': return '#9ACD32';
+    case 'stain': return '#7CFC00';
+    case 'sanitization': return '#98FB98';
+    case 'deodorizing': return '#90EE90';
+    default: return '#556B2F';
+  }
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7FAFC',
+    backgroundColor: '#F8FFF0',
   },
   scrollView: {
     flex: 1,
@@ -420,7 +634,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#556B2F',
   },
   backButtonContainer: {
     padding: 4,
@@ -446,20 +660,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#2E4D2E',
     marginHorizontal: 16,
     marginTop: 24,
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#6B8E23',
     marginHorizontal: 16,
     marginBottom: 12,
   },
   selectCount: {
     fontSize: 14,
-    color: '#4A90E2',
+    color: '#556B2F',
     fontWeight: '600',
   },
   servicesContainer: {
@@ -472,23 +686,46 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: '#C5E1A5',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   selectedServiceCard: {
-    borderColor: '#4A90E2',
-    backgroundColor: '#F0F7FF',
+    borderColor: '#556B2F',
+    backgroundColor: '#F1F8E9',
   },
   serviceContent: {
     flex: 1,
   },
+  serviceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
   serviceName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 6,
+    color: '#2E4D2E',
+    flex: 1,
+    marginRight: 8,
+  },
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  typeText: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  serviceIncludes: {
+    fontSize: 13,
+    color: '#6B8E23',
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   serviceDetails: {
     flexDirection: 'row',
@@ -497,15 +734,15 @@ const styles = StyleSheet.create({
   servicePrice: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#4A90E2',
+    color: '#556B2F',
     marginRight: 12,
   },
   serviceDuration: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#6B8E23',
   },
   selectedIndicator: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#556B2F',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -521,7 +758,126 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 10,
     borderWidth: 2,
-    borderColor: '#4A90E2',
+    borderColor: '#556B2F',
+  },
+  carpetDetailsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  dropdownContainer: {
+    marginBottom: 20,
+  },
+  dropdownLabel: {
+    fontSize: 14,
+    color: '#6B8E23',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  typeScroll: {
+    flexGrow: 0,
+  },
+  typeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#C5E1A5',
+    marginRight: 8,
+  },
+  selectedTypeButton: {
+    backgroundColor: '#556B2F',
+    borderColor: '#556B2F',
+  },
+  typeButtonText: {
+    fontSize: 14,
+    color: '#6B8E23',
+    fontWeight: '500',
+  },
+  selectedTypeButtonText: {
+    color: '#FFFFFF',
+  },
+  sizeContainer: {
+    marginBottom: 20,
+  },
+  sizeLabel: {
+    fontSize: 14,
+    color: '#6B8E23',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  sizeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  sizeButton: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#C5E1A5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  selectedSizeButton: {
+    backgroundColor: '#556B2F',
+    borderColor: '#556B2F',
+  },
+  sizeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2E4D2E',
+    marginBottom: 4,
+  },
+  selectedSizeButtonText: {
+    color: '#FFFFFF',
+  },
+  sizeAreaText: {
+    fontSize: 12,
+    color: '#6B8E23',
+  },
+  selectedSizeAreaText: {
+    color: '#C5E1A5',
+  },
+  countContainer: {
+    marginBottom: 16,
+  },
+  countLabel: {
+    fontSize: 14,
+    color: '#6B8E23',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  countSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#C5E1A5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  countDisplay: {
+    alignItems: 'center',
+    marginHorizontal: 20,
+  },
+  countText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#556B2F',
+  },
+  countUnit: {
+    fontSize: 14,
+    color: '#6B8E23',
+    marginTop: 4,
   },
   datetimeContainer: {
     flexDirection: 'row',
@@ -534,21 +890,21 @@ const styles = StyleSheet.create({
   },
   datetimeLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#6B8E23',
     marginBottom: 8,
     fontWeight: '500',
   },
   datetimeInput: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#C5E1A5',
     borderRadius: 8,
     padding: 14,
     justifyContent: 'center',
   },
   datetimeText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: '#2E4D2E',
     fontWeight: '500',
   },
   modalOverlay: {
@@ -575,18 +931,18 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#C5E1A5',
     flex: 1,
     marginRight: 8,
     alignItems: 'center',
   },
   modalCancelButtonText: {
-    color: '#6B7280',
+    color: '#6B8E23',
     fontSize: 16,
     fontWeight: '600',
   },
   modalDoneButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#556B2F',
     padding: 12,
     borderRadius: 8,
     flex: 1,
@@ -602,19 +958,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 24,
   },
-  phoneInput: {
+  input: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#C5E1A5',
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
   },
   noteText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#6B8E23',
     fontStyle: 'italic',
+    textAlign: 'center',
   },
   summaryCard: {
     backgroundColor: '#FFFFFF',
@@ -631,7 +992,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#2E4D2E',
     marginBottom: 16,
   },
   summaryRow: {
@@ -642,49 +1003,49 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 15,
-    color: '#1F2937',
+    color: '#2E4D2E',
     flex: 1,
     marginRight: 10,
   },
   summaryValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1F2937',
+    color: '#2E4D2E',
   },
   totalRow: {
     marginTop: 8,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: '#C5E1A5',
   },
   totalLabel: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#2E4D2E',
   },
   totalPrice: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#4A90E2',
+    color: '#556B2F',
   },
   buttonContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#F7FAFC',
+    backgroundColor: '#F8FFF0',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: '#C5E1A5',
   },
   bookButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#556B2F',
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
   },
   disabledButton: {
-    backgroundColor: '#A0C8FF',
+    backgroundColor: '#A5D6A7',
   },
   bookButtonText: {
     color: '#FFFFFF',
