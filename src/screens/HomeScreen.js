@@ -15,6 +15,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+//import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen() {
@@ -184,15 +185,24 @@ export default function HomeScreen() {
     },
     {
       id: '3',
-      title: 'Products',
-      subtitle: 'Shop Now',
-      icon: 'shopping-cart',
+      title: 'Sofa & Carpet cleaning',
+      subtitle: 'Sofa and carpet cleaning',
+      icon: 'Chair',
       color: '#FF6B6B',
       bgColor: '#FFEBEE',
       action: () => navigation.navigate('Products')
     },
     {
       id: '4',
+      title: 'AC Services',
+      subtitle: 'Get Help',
+      icon: 'AcUnit',
+      color: '#FFA500',
+      bgColor: '#FFF3E0',
+      action: () => navigation.navigate('Support')
+    },
+     {
+      id: '5',
       title: 'Support',
       subtitle: 'Get Help',
       icon: 'help-outline',
@@ -213,7 +223,7 @@ export default function HomeScreen() {
             <Icon name="menu" size={28} color="#FFFFFF" />
           </TouchableOpacity>
           
-          <Text style={styles.appTitle}>CarWash</Text>
+          <Text style={styles.appTitle}>Express washing</Text>
           
           {/* Location Button */}
           <TouchableOpacity 
@@ -238,7 +248,7 @@ export default function HomeScreen() {
             {city !== 'Select City' ? `Hi! Welcome to ${city}` : 'Hi! Welcome to Royal Services'}
           </Text>
           <Text style={styles.greetingSubtitle}>
-            Book a wash or buy products fast.
+            Book a wash or buy products.
           </Text>
           
           {address && (
@@ -299,7 +309,7 @@ export default function HomeScreen() {
             </View>
             <View style={styles.serviceInfo}>
               <Text style={styles.serviceName}>Basic Car Wash</Text>
-              <Text style={styles.servicePrice}>₹299 • 30 mins</Text>
+              <Text style={styles.servicePrice}>₹299 </Text>
             </View>
             <Icon name="chevron-right" size={20} color="#95A5A6" />
           </TouchableOpacity>
@@ -313,7 +323,7 @@ export default function HomeScreen() {
             </View>
             <View style={styles.serviceInfo}>
               <Text style={styles.serviceName}>Premium Car Wash</Text>
-              <Text style={styles.servicePrice}>₹499 • 45 mins</Text>
+              <Text style={styles.servicePrice}>₹599 </Text>
             </View>
             <Icon name="chevron-right" size={20} color="#95A5A6" />
           </TouchableOpacity>

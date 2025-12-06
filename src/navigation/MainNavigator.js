@@ -9,19 +9,20 @@ import HomeScreen from '../screens/HomeScreen';
 import BookingScreen from '../screens/BookingScreen';
 import OtpScreen from '../screens/OtpScreen';
 import ProductsScreen from '../screens/ProductsScreen';
+import OrdersScreen from '../screens/OrdersScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 // Simple placeholder screens
-function OrdersScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>📦 Orders</Text>
-      <Text>Your orders will appear here</Text>
-    </View>
-  );
-}
+// function OrdersScreen() {
+//   return (
+//     <View style={styles.container}>
+//       <Text style={styles.title}>📦 Orders</Text>
+//       <Text>Your orders will appear here</Text>
+//     </View>
+//   );
+// }
 
 function CartScreen() {
   return (
@@ -107,6 +108,14 @@ export default function MainNavigator() {
       <Stack.Screen
         name="Booking"
         component={BookingScreen}
+        options={({ route }) => ({
+          title: `Book ${route.params?.vehicle || 'Car'} Wash`,
+          headerBackTitle: 'Back',
+        })}
+      />
+      <Stack.Screen
+        name="Order"
+        component={OrdersScreen}
         options={({ route }) => ({
           title: `Book ${route.params?.vehicle || 'Car'} Wash`,
           headerBackTitle: 'Back',

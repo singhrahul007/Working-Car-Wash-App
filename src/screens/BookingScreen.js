@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,9 +7,14 @@ import {
   TouchableOpacity, 
   StatusBar,
   SafeAreaView,
-  TextInput 
+  TextInput,
+  Platform,
+  Alert,
+  Modal
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import moment from 'moment';
 
 export default function BookingScreen() {
   const route = useRoute();
@@ -18,39 +23,193 @@ export default function BookingScreen() {
   
   const [selectedService, setSelectedService] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [date, setDate] = useState('Today');
-  const [time, setTime] = useState('3:00 PM');
+  const [date, setDate] = useState(new Date());
+  const [time, setTime] = useState(new Date());
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState('date');
+  const [currentPickerValue, setCurrentPickerValue] = useState(new Date());
+  const [formattedDate, setFormattedDate] = useState('Today');
+  const [formattedTime, setFormattedTime] = useState('3:00 PM');
 
-  const services = [
-    { id: 1, name: 'Basic Wash', price: vehicle === 'car' ? 25 : 15, duration: '30 mins' },
-    { id: 2, name: 'Premium Wash', price: vehicle === 'car' ? 45 : 25, duration: '45 mins' },
-    { id: 3, name: 'Interior Cleaning', price: vehicle === 'car' ? 35 : 20, duration: '40 mins' },
-    { id: 4, name: 'Full Service', price: vehicle === 'car' ? 65 : 40, duration: '60 mins' },
+  // Initialize time to 3:00 PM
+  useEffect(() => {
+    const initialTime = new Date();
+    initialTime.setHours(15, 0, 0, 0);
+    setTime(initialTime);
+    setFormattedTime('3:00 PM');
+  }, []);
+
+  // Format date for display
+  useEffect(() => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      setFormattedDate('Today');
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      setFormattedDate('Tomorrow');
+    } else {
+      setFormattedDate(moment(date).format('DD MMM YYYY'));
+    }
+  }, [date]);
+
+  // Format time for display
+  useEffect(() => {
+    const hours = time.getHours();
+    const minutes = time.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 || 12;
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+    setFormattedTime(`${formattedHours}:${formattedMinutes} ${ampm}`);
+  }, [time]);
+
+  // Services for Car Wash
+  const carServices = [
+    { id: 1, name: 'Basic Wash (Bucket wash)', price: 299, applicableTo: ['car'] },
+    { id: 2, name: 'Premium Wash (Water Wash)', price: 499, applicableTo: ['car'] },
+    { id: 3, name: 'Interior Cleaning', price: 499, applicableTo: ['car'] },
+    { id: 4, name: 'Full Service (Water Wash + Interior)', price: 699, applicableTo: ['car'] },
+    { id: 5, name: 'Engine Wash', price: 399, applicableTo: ['car'] },
+    { id: 6, name: 'Waxing & Polishing', price: 899, applicableTo: ['car'] },
+    { id: 7, name: 'AC Service & Cleaning', price: 799, applicableTo: ['car'] },
+    { id: 8, name: 'Tire Shine & Cleaning', price: 199, applicableTo: ['car'] },
   ];
 
+  // Services for Bike Wash
+  const bikeServices = [
+    { id: 1, name: 'Basic Wash (Bucket wash)', price: 99, applicableTo: ['bike'] },
+    { id: 2, name: 'Premium Wash (Water Wash)', price: 199, applicableTo: ['bike'] },
+    { id: 3, name: 'Chain Cleaning & Lubrication', price: 149, applicableTo: ['bike'] },
+    { id: 4, name: 'Complete Bike Service', price: 599, applicableTo: ['bike'] },
+    { id: 5, name: 'Engine Cleaning', price: 249, applicableTo: ['bike'] },
+    { id: 6, name: 'Polish & Wax', price: 349, applicableTo: ['bike'] },
+  ];
+
+  // Select services based on vehicle type
+  const services = vehicle === 'car' ? carServices : bikeServices;
+
+  const showDatepicker = () => {
+    setCurrentPickerValue(date);
+    setPickerMode('date');
+    setShowPicker(true);
+  };
+
+  const showTimepicker = () => {
+    setCurrentPickerValue(time);
+    setPickerMode('time');
+    setShowPicker(true);
+  };
+
+  const onChange = (event, selectedValue) => {
+    if (selectedValue) {
+      if (pickerMode === 'date') {
+        setDate(selectedValue);
+      } else {
+        setTime(selectedValue);
+      }
+    }
+    
+    // For Android, close the picker after selection
+    if (Platform.OS === 'android') {
+      setShowPicker(false);
+    }
+  };
+
+  const handleServiceSelect = (service) => {
+    setSelectedService(service);
+  };
+
   const handleBookNow = () => {
-    // Navigate to OTP screen or show OTP modal
+    if (!selectedService || !phoneNumber) {
+      Alert.alert('Incomplete Booking', 'Please select a service and enter your phone number.');
+      return;
+    }
+
+    if (phoneNumber.length < 10) {
+      Alert.alert('Invalid Phone', 'Please enter a valid phone number.');
+      return;
+    }
+
+    // Navigate to OTP screen
     navigation.navigate('Otp', { 
       phone: phoneNumber,
       service: selectedService,
       vehicle,
-      date,
-      time 
+      date: formattedDate,
+      time: formattedTime 
     });
+  };
+
+  const renderDateTimePicker = () => {
+    if (Platform.OS === 'ios') {
+      return (
+        <Modal
+          transparent={true}
+          visible={showPicker}
+          animationType="slide"
+          onRequestClose={() => setShowPicker(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <DateTimePicker
+                value={currentPickerValue}
+                mode={pickerMode}
+                display="spinner"
+                onChange={onChange}
+                minimumDate={pickerMode === 'date' ? new Date() : undefined}
+                style={styles.iosPicker}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowPicker(false)}
+                >
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.modalDoneButton}
+                  onPress={() => setShowPicker(false)}
+                >
+                  <Text style={styles.modalDoneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      );
+    } else {
+      // For Android
+      if (showPicker) {
+        return (
+          <DateTimePicker
+            value={currentPickerValue}
+            mode={pickerMode}
+            display="default"
+            onChange={onChange}
+            minimumDate={pickerMode === 'date' ? new Date() : undefined}
+          />
+        );
+      }
+      return null;
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#4A90E2" barStyle="light-content" />
       
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity 
+            style={styles.backButtonContainer}
+            onPress={() => navigation.goBack()}
+          >
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Book {vehicle === 'car' ? 'Car' : 'Bike'} Wash</Text>
-          <View style={{ width: 30 }} />
+          <View style={{ width: 40 }} />
         </View>
 
         {/* Service Selection */}
@@ -63,11 +222,13 @@ export default function BookingScreen() {
                 styles.serviceCard,
                 selectedService?.id === service.id && styles.selectedServiceCard
               ]}
-              onPress={() => setSelectedService(service)}
+              onPress={() => handleServiceSelect(service)}
+              activeOpacity={0.7}
             >
-              <Text style={styles.serviceName}>{service.name}</Text>
-              <Text style={styles.servicePrice}>Rs.{service.price}</Text>
-              <Text style={styles.serviceDuration}>{service.duration}</Text>
+              <View style={styles.serviceContent}>
+                <Text style={styles.serviceName}>{service.name}</Text>
+                <Text style={styles.servicePrice}>Rs.{service.price}</Text>
+              </View>
               {selectedService?.id === service.id && (
                 <View style={styles.selectedIndicator}>
                   <Text style={styles.selectedText}>✓</Text>
@@ -77,26 +238,29 @@ export default function BookingScreen() {
           ))}
         </View>
 
-        {/* Date & Time */}
+        {/* Date & Time Selection */}
         <Text style={styles.sectionTitle}>Date & Time</Text>
         <View style={styles.datetimeContainer}>
+          {/* Date Picker */}
           <View style={styles.datetimeCard}>
             <Text style={styles.datetimeLabel}>Date</Text>
-            <TextInput
+            <TouchableOpacity 
               style={styles.datetimeInput}
-              value={date}
-              onChangeText={setDate}
-              placeholder="Select date"
-            />
+              onPress={showDatepicker}
+            >
+              <Text style={styles.datetimeText}>{formattedDate}</Text>
+            </TouchableOpacity>
           </View>
+
+          {/* Time Picker */}
           <View style={styles.datetimeCard}>
             <Text style={styles.datetimeLabel}>Time</Text>
-            <TextInput
+            <TouchableOpacity 
               style={styles.datetimeInput}
-              value={time}
-              onChangeText={setTime}
-              placeholder="Select time"
-            />
+              onPress={showTimepicker}
+            >
+              <Text style={styles.datetimeText}>{formattedTime}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -109,6 +273,8 @@ export default function BookingScreen() {
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             keyboardType="phone-pad"
+            maxLength={10}
+            returnKeyType="done"
           />
           <Text style={styles.noteText}>
             We'll send an OTP to verify your number
@@ -131,29 +297,39 @@ export default function BookingScreen() {
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Date & Time</Text>
-              <Text style={styles.summaryValue}>{date} at {time}</Text>
+              <Text style={styles.summaryValue}>{formattedDate} at {formattedTime}</Text>
             </View>
             <View style={[styles.summaryRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalLabel}>Total Amount</Text>
               <Text style={styles.totalPrice}>Rs.{selectedService.price}</Text>
             </View>
           </View>
         )}
+
+        {/* Spacer for button */}
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Book Button */}
-      <TouchableOpacity 
-        style={[
-          styles.bookButton,
-          (!selectedService || !phoneNumber) && styles.disabledButton
-        ]}
-        onPress={handleBookNow}
-        disabled={!selectedService || !phoneNumber}
-      >
-        <Text style={styles.bookButtonText}>
-          {selectedService ? `Book Now - Rs.${selectedService.price}` : 'Select Service'}
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity 
+          style={[
+            styles.bookButton,
+            (!selectedService || !phoneNumber) && styles.disabledButton
+          ]}
+          onPress={handleBookNow}
+          disabled={!selectedService || !phoneNumber}
+        >
+          <Text style={styles.bookButtonText}>
+            {selectedService 
+              ? `Book Now - Rs.${selectedService.price}` 
+              : 'Select Service'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* DateTimePicker */}
+      {renderDateTimePicker()}
     </SafeAreaView>
   );
 }
@@ -174,10 +350,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     backgroundColor: '#4A90E2',
   },
+  backButtonContainer: {
+    padding: 4,
+  },
   backButton: {
-    fontSize: 24,
+    fontSize: 28,
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    fontWeight: '300',
   },
   headerTitle: {
     fontSize: 20,
@@ -202,42 +381,41 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 2,
     borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   selectedServiceCard: {
     borderColor: '#4A90E2',
     backgroundColor: '#F0F7FF',
   },
+  serviceContent: {
+    flex: 1,
+  },
   serviceName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 4,
   },
   servicePrice: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#4A90E2',
-    marginBottom: 4,
-  },
-  serviceDuration: {
-    fontSize: 14,
-    color: '#6B7280',
   },
   selectedIndicator: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
     backgroundColor: '#4A90E2',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 10,
   },
   selectedText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 16,
   },
   datetimeContainer: {
     flexDirection: 'row',
@@ -251,14 +429,68 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginBottom: 8,
+    fontWeight: '500',
   },
   datetimeInput: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 8,
-    padding: 12,
+    padding: 14,
+    justifyContent: 'center',
+  },
+  datetimeText: {
     fontSize: 16,
+    color: '#1F2937',
+    fontWeight: '500',
+  },
+  // Modal styles for iOS DateTimePicker
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+  },
+  iosPicker: {
+    height: 200,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalCancelButton: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flex: 1,
+    marginRight: 8,
+    alignItems: 'center',
+  },
+  modalCancelButtonText: {
+    color: '#6B7280',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalDoneButton: {
+    backgroundColor: '#4A90E2',
+    padding: 12,
+    borderRadius: 8,
+    flex: 1,
+    marginLeft: 8,
+    alignItems: 'center',
+  },
+  modalDoneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   contactContainer: {
     paddingHorizontal: 16,
@@ -288,7 +520,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   summaryTitle: {
     fontSize: 20,
@@ -326,11 +558,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#4A90E2',
   },
+  buttonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#F7FAFC',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
   bookButton: {
     backgroundColor: '#4A90E2',
     paddingVertical: 18,
-    marginHorizontal: 16,
-    marginVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
