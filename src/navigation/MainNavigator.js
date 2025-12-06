@@ -15,30 +15,11 @@ import SofaCleaningScreen from '../screens/SofaCleaningScreen';
 import CarpetCleaningScreen from '../screens/CarpetCleaningScreen';
 import SupportScreen from '../screens/SupportScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import CartScreen from '../screens/CartScreen';
+import OffersScreen from '../screens/OffersScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
-
-// Simple placeholder screens
-// function OrdersScreen() {
-//   return (
-//     <View style={styles.container}>
-//       <Text style={styles.title}>📦 Orders</Text>
-//       <Text>Your orders will appear here</Text>
-//     </View>
-//   );
-// }
-
-function CartScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🛒 Cart</Text>
-      <Text>Your cart items will appear here</Text>
-    </View>
-  );
-}
-
-// s
 
 
 function CameraScreen() {
@@ -65,6 +46,8 @@ function MainTabNavigator() {
             icon = focused ? '🛒' : '🛒';
           } else if (route.name === 'Profile') {
             icon = focused ? '👤' : '👤';
+          } else if (route.name === 'Offers') {
+            icon = focused ? '🎁' : '🎁';
           }
           return <Text style={{ fontSize: 24 }}>{icon}</Text>;
         },
@@ -74,6 +57,7 @@ function MainTabNavigator() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Offers" component={OffersScreen} />
       <Tab.Screen name="Orders" component={OrdersScreen} />
       <Tab.Screen name="Cart" component={CartScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
