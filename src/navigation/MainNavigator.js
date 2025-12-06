@@ -17,6 +17,7 @@ import SupportScreen from '../screens/SupportScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CartScreen from '../screens/CartScreen';
 import OffersScreen from '../screens/OffersScreen';
+import SavedCardsScreen from '../screens/SavedCardsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -48,6 +49,8 @@ function MainTabNavigator() {
             icon = focused ? '👤' : '👤';
           } else if (route.name === 'Offers') {
             icon = focused ? '🎁' : '🎁';
+          }else if (route.name === 'Wallet') {
+            icon = focused ? '💰' : '💰';
           }
           return <Text style={{ fontSize: 24 }}>{icon}</Text>;
         },
@@ -61,6 +64,9 @@ function MainTabNavigator() {
       <Tab.Screen name="Orders" component={OrdersScreen} />
       <Tab.Screen name="Cart" component={CartScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Wallet"  component={SavedCardsScreen}
+        options={{ title: 'Wallet' }}
+      />
     </Tab.Navigator>
   );
 }
@@ -152,6 +158,9 @@ export default function MainNavigator() {
             headerBackTitle: 'Back',
           }}
         />
+        
+        <Stack.Screen name="SavedCards" 
+        component={SavedCardsScreen} />
     </Stack.Navigator>
   );
 }
