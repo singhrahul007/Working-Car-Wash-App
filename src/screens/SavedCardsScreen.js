@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +33,10 @@ const MOCK_SAVED_CARDS = [
     cardNumber: '•••• •••• •••• 4242',
     brand: 'VISA',
     color: '#1A1F71',
+    bank: 'HDFC Bank',
+    gradient: ['#1A237E', '#283593'],
+    logo: '💳',
+    design: 'premium',
   },
   {
     id: '2',
@@ -43,6 +48,10 @@ const MOCK_SAVED_CARDS = [
     cardNumber: '•••• •••• •••• 5555',
     brand: 'MasterCard',
     color: '#EB001B',
+    bank: 'ICICI Bank',
+    gradient: ['#C62828', '#D32F2F'],
+    logo: '💎',
+    design: 'classic',
   },
   {
     id: '3',
@@ -54,6 +63,10 @@ const MOCK_SAVED_CARDS = [
     cardNumber: '•••• •••• •••• 1234',
     brand: 'RuPay',
     color: '#003087',
+    bank: 'SBI',
+    gradient: ['#0D47A1', '#1565C0'],
+    logo: '🏦',
+    design: 'standard',
   },
 ];
 
@@ -94,6 +107,8 @@ const SavedCardsScreen = ({ navigation }) => {
     cvv: '',
     saveCard: true,
     isDefault: false,
+    bankName: '',
+    cardDesign: 'classic',
   });
   
   // New UPI form state
@@ -106,6 +121,8 @@ const SavedCardsScreen = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const modalSlideAnim = useRef(new Animated.Value(300)).current;
+  const cardFlipAnim = useRef(new Animated.Value(0)).current;
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   // Load animations
   useEffect(() => {
@@ -136,6 +153,17 @@ const SavedCardsScreen = ({ navigation }) => {
     }
   }, [showAddCardModal, showAddUPIModal]);
 
+  // Handle card flip
+  const flipCard = () => {
+    Animated.spring(cardFlipAnim, {
+      toValue: isCardFlipped ? 0 : 180,
+      friction: 8,
+      tension: 10,
+      useNativeDriver: true,
+    }).start();
+    setIsCardFlipped(!isCardFlipped);
+  };
+
   // Get card brand/type from card number
   const getCardType = (cardNumber) => {
     const cleaned = cardNumber.replace(/\D/g, '');
@@ -162,6 +190,77 @@ const SavedCardsScreen = ({ navigation }) => {
     }
     
     return 'credit';
+  };
+
+  // Get card gradient colors
+  const getCardGradient = (cardType, design = 'classic') => {
+    switch (cardType) {
+      case 'visa':
+        switch (design) {
+          case 'premium':
+            return ['#1A237E', '#283593', '#3949AB'];
+          case 'metal':
+            return ['#3E2723', '#5D4037', '#795548'];
+          default:
+            return ['#1A2980', '#26D0CE']; // Blue gradient
+        }
+      case 'mastercard':
+        switch (design) {
+          case 'premium':
+            return ['#FF6F00', '#FF8F00', '#FFA000'];
+          case 'metal':
+            return ['#37474F', '#455A64', '#546E7A'];
+          default:
+            return ['#F44336', '#E91E63']; // Red-Pink gradient
+        }
+      case 'rupay':
+        switch (design) {
+          case 'premium':
+            return ['#0D47A1', '#1565C0', '#1976D2'];
+          case 'metal':
+            return ['#1A237E', '#283593', '#303F9F'];
+          default:
+            return ['#0D47A1', '#42A5F5']; // Blue gradient
+        }
+      case 'amex':
+        return ['#2E77BC', '#64B5F6'];
+      case 'discover':
+        return ['#FF6000', '#FF9800'];
+      default:
+        return ['#37474F', '#546E7A'];
+    }
+  };
+
+  // Get card logo
+  const getCardLogo = (cardType) => {
+    switch (cardType) {
+      case 'visa':
+        return '💳';
+      case 'mastercard':
+        return '💎';
+      case 'rupay':
+        return '🏦';
+      case 'amex':
+        return '✈️';
+      case 'discover':
+        return '🔍';
+      default:
+        return '💳';
+    }
+  };
+
+  // Get card bank name
+  const getBankName = (cardNumber) => {
+    const cleaned = cardNumber.replace(/\D/g, '');
+    const firstTwo = cleaned.substring(0, 2);
+    
+    // Mock bank detection based on first digits
+    if (firstTwo.startsWith('4')) return 'HDFC Bank';
+    if (firstTwo.startsWith('5')) return 'ICICI Bank';
+    if (firstTwo.startsWith('60')) return 'SBI';
+    if (firstTwo.startsWith('37')) return 'American Express';
+    if (firstTwo.startsWith('65')) return 'Axis Bank';
+    return 'Bank';
   };
 
   // Format card number
@@ -223,15 +322,7 @@ const SavedCardsScreen = ({ navigation }) => {
       const cardType = getCardType(newCard.cardNumber);
       const lastFour = newCard.cardNumber.replace(/\s/g, '').slice(-4);
       const formattedCard = `•••• •••• •••• ${lastFour}`;
-      
-      const brandColors = {
-        visa: '#1A1F71',
-        mastercard: '#EB001B',
-        rupay: '#003087',
-        amex: '#2E77BC',
-        discover: '#FF6000',
-        credit: '#4A4A4A',
-      };
+      const bankName = getBankName(newCard.cardNumber);
       
       const newCardObj = {
         id: Date.now().toString(),
@@ -242,7 +333,11 @@ const SavedCardsScreen = ({ navigation }) => {
         isDefault: newCard.isDefault,
         cardNumber: formattedCard,
         brand: cardType.toUpperCase(),
-        color: brandColors[cardType] || '#4A4A4A',
+        color: '#1A1F71',
+        bank: bankName,
+        gradient: getCardGradient(cardType, newCard.cardDesign),
+        logo: getCardLogo(cardType),
+        design: newCard.cardDesign,
       };
       
       // If new card is default, unset others
@@ -263,6 +358,8 @@ const SavedCardsScreen = ({ navigation }) => {
         cvv: '',
         saveCard: true,
         isDefault: false,
+        bankName: '',
+        cardDesign: 'classic',
       });
       
       setShowAddCardModal(false);
@@ -312,76 +409,127 @@ const SavedCardsScreen = ({ navigation }) => {
     }, 1500);
   };
 
-  // Handle set as default
-  const handleSetDefault = (id, type) => {
-    if (type === 'card') {
-      const updatedCards = savedCards.map(card => ({
-        ...card,
-        isDefault: card.id === id,
-      }));
-      setSavedCards(updatedCards);
-    } else {
-      const updatedUPIs = upiIds.map(upi => ({
-        ...upi,
-        isDefault: upi.id === id,
-      }));
-      setUpiIds(updatedUPIs);
-    }
-  };
-
-  // Handle delete card/UPI
-  const handleDelete = (id, type) => {
-    Alert.alert(
-      'Delete Payment Method',
-      'Are you sure you want to delete this payment method?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            if (type === 'card') {
-              const updatedCards = savedCards.filter(card => card.id !== id);
-              setSavedCards(updatedCards);
-            } else {
-              const updatedUPIs = upiIds.filter(upi => upi.id !== id);
-              setUpiIds(updatedUPIs);
-            }
-            Alert.alert('Deleted', 'Payment method deleted successfully');
-          },
-        },
-      ]
+  // Render card preview (Front side)
+  const renderCardFront = () => {
+    const cardType = getCardType(newCard.cardNumber);
+    const gradientColors = getCardGradient(cardType, newCard.cardDesign);
+    const bankName = getBankName(newCard.cardNumber);
+    
+    return (
+      <LinearGradient
+        colors={gradientColors}
+        style={styles.previewCard}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        {/* Card top section */}
+        <View style={styles.cardTopSection}>
+          <View style={styles.cardChipContainer}>
+            <View style={styles.cardChip}>
+              <View style={styles.chipLines}>
+                <View style={styles.chipLine1} />
+                <View style={styles.chipLine2} />
+                <View style={styles.chipLine3} />
+                <View style={styles.chipLine4} />
+              </View>
+            </View>
+            <View style={styles.cardContactless}>
+              <MaterialCommunityIcons name="contactless-payment" size={32} color="rgba(255,255,255,0.8)" />
+            </View>
+          </View>
+          
+          <View style={styles.cardBankInfo}>
+            <Text style={styles.cardBankName}>{bankName}</Text>
+            <Text style={styles.cardTypeText}>{cardType.toUpperCase()} CARD</Text>
+          </View>
+        </View>
+        
+        {/* Card number */}
+        <View style={styles.cardNumberContainer}>
+          <Text style={styles.cardNumberText}>
+            {newCard.cardNumber || '•••• •••• •••• ••••'}
+          </Text>
+        </View>
+        
+        {/* Card bottom section */}
+        <View style={styles.cardBottomSection}>
+          <View style={styles.cardHolderContainer}>
+            <Text style={styles.cardLabel}>CARD HOLDER</Text>
+            <Text style={styles.cardHolderText}>
+              {newCard.cardHolder.toUpperCase() || 'YOUR NAME'}
+            </Text>
+          </View>
+          
+          <View style={styles.cardExpiryContainer}>
+            <Text style={styles.cardLabel}>VALID THRU</Text>
+            <Text style={styles.cardExpiryText}>
+              {newCard.expiryMonth && newCard.expiryYear 
+                ? `${newCard.expiryMonth}/${newCard.expiryYear.slice(-2)}` 
+                : 'MM/YY'}
+            </Text>
+          </View>
+          
+          <View style={styles.cardBrandLogo}>
+            <Text style={styles.cardBrandText}>{cardType.toUpperCase()}</Text>
+          </View>
+        </View>
+        
+        {/* Decorative elements */}
+        <View style={styles.cardDecorations}>
+          <View style={styles.decorationCircle1} />
+          <View style={styles.decorationCircle2} />
+          <View style={styles.decorationCircle3} />
+        </View>
+      </LinearGradient>
     );
   };
 
-  // Handle refresh
-  const handleRefresh = () => {
-    setRefreshing(true);
-    // Simulate API refresh
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+  // Render card preview (Back side)
+  const renderCardBack = () => {
+    const cardType = getCardType(newCard.cardNumber);
+    const gradientColors = getCardGradient(cardType, newCard.cardDesign);
+    
+    return (
+      <LinearGradient
+        colors={gradientColors}
+        style={styles.previewCardBack}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        {/* Magnetic strip */}
+        <View style={styles.magneticStrip} />
+        
+        {/* CVV strip */}
+        <View style={styles.cvvStrip}>
+          <Text style={styles.cvvLabel}>CVV</Text>
+          <View style={styles.cvvBox}>
+            <Text style={styles.cvvText}>
+              {newCard.cvv || '•••'}
+            </Text>
+          </View>
+        </View>
+        
+        {/* Card back info */}
+        <View style={styles.cardBackInfo}>
+          <Text style={styles.cardBackText}>
+            For customer service, call +1-800-123-4567
+          </Text>
+          <Text style={styles.cardBackText}>
+            Authorized signature not valid unless signed
+          </Text>
+        </View>
+        
+        {/* Hologram */}
+        <View style={styles.hologram}>
+          <View style={styles.hologramInner}>
+            <Text style={styles.hologramText}>VISA</Text>
+          </View>
+        </View>
+      </LinearGradient>
+    );
   };
 
-  // Get card icon
-  const getCardIcon = (type) => {
-    switch (type) {
-      case 'visa':
-        return 'cc-visa';
-      case 'mastercard':
-        return 'cc-mastercard';
-      case 'rupay':
-        return 'credit-card';
-      case 'amex':
-        return 'cc-amex';
-      case 'discover':
-        return 'cc-discover';
-      default:
-        return 'credit-card';
-    }
-  };
-
-  // Render card item
+  // Render card item (for saved cards list)
   const renderCardItem = ({ item, index }) => {
     const scaleAnim = useRef(new Animated.Value(0.9)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -412,32 +560,49 @@ const SavedCardsScreen = ({ navigation }) => {
           },
         ]}
       >
-        <View style={[styles.cardHeader, { backgroundColor: item.color }]}>
-          <View style={styles.cardBrand}>
-            <FontAwesome5 name={getCardIcon(item.type)} size={24} color="#fff" />
-            <Text style={styles.cardBrandText}>{item.brand}</Text>
+        <LinearGradient
+          colors={item.gradient || ['#1A237E', '#283593']}
+          style={styles.savedCardPreview}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          {/* Card header */}
+          <View style={styles.savedCardHeader}>
+            <View style={styles.savedCardBank}>
+              <Text style={styles.savedCardBankName}>{item.bank}</Text>
+              <Text style={styles.savedCardType}>{item.type.toUpperCase()}</Text>
+            </View>
+            {item.isDefault && (
+              <View style={styles.savedDefaultBadge}>
+                <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                <Text style={styles.savedDefaultBadgeText}>DEFAULT</Text>
+              </View>
+            )}
           </View>
-          {item.isDefault && (
-            <View style={styles.defaultBadge}>
-              <Ionicons name="checkmark-circle" size={16} color="#fff" />
-              <Text style={styles.defaultBadgeText}>DEFAULT</Text>
+          
+          {/* Card chip */}
+          <View style={styles.savedCardChip}>
+            <View style={styles.savedChipInner} />
+          </View>
+          
+          {/* Card number */}
+          <Text style={styles.savedCardNumber}>{item.cardNumber}</Text>
+          
+          {/* Card footer */}
+          <View style={styles.savedCardFooter}>
+            <View>
+              <Text style={styles.savedCardLabel}>Card Holder</Text>
+              <Text style={styles.savedCardHolder}>{item.cardHolder}</Text>
             </View>
-          )}
-        </View>
-        
-        <View style={styles.cardBody}>
-          <Text style={styles.cardNumber}>{item.cardNumber}</Text>
-          <View style={styles.cardDetails}>
-            <View style={styles.cardDetailItem}>
-              <Text style={styles.cardDetailLabel}>Card Holder</Text>
-              <Text style={styles.cardDetailValue}>{item.cardHolder}</Text>
+            <View>
+              <Text style={styles.savedCardLabel}>Expires</Text>
+              <Text style={styles.savedCardExpiry}>{item.expiryDate}</Text>
             </View>
-            <View style={styles.cardDetailItem}>
-              <Text style={styles.cardDetailLabel}>Expires</Text>
-              <Text style={styles.cardDetailValue}>{item.expiryDate}</Text>
+            <View style={styles.savedCardBrand}>
+              <Text style={styles.savedCardBrandText}>{item.brand}</Text>
             </View>
           </View>
-        </View>
+        </LinearGradient>
         
         <View style={styles.cardActions}>
           <TouchableOpacity
@@ -549,6 +714,57 @@ const SavedCardsScreen = ({ navigation }) => {
         </View>
       </Animated.View>
     );
+  };
+
+  // Handle set as default
+  const handleSetDefault = (id, type) => {
+    if (type === 'card') {
+      const updatedCards = savedCards.map(card => ({
+        ...card,
+        isDefault: card.id === id,
+      }));
+      setSavedCards(updatedCards);
+    } else {
+      const updatedUPIs = upiIds.map(upi => ({
+        ...upi,
+        isDefault: upi.id === id,
+      }));
+      setUpiIds(updatedUPIs);
+    }
+  };
+
+  // Handle delete card/UPI
+  const handleDelete = (id, type) => {
+    Alert.alert(
+      'Delete Payment Method',
+      'Are you sure you want to delete this payment method?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            if (type === 'card') {
+              const updatedCards = savedCards.filter(card => card.id !== id);
+              setSavedCards(updatedCards);
+            } else {
+              const updatedUPIs = upiIds.filter(upi => upi.id !== id);
+              setUpiIds(updatedUPIs);
+            }
+            Alert.alert('Deleted', 'Payment method deleted successfully');
+          },
+        },
+      ]
+    );
+  };
+
+  // Handle refresh
+  const handleRefresh = () => {
+    setRefreshing(true);
+    // Simulate API refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
   };
 
   // Handle card number input
@@ -777,34 +993,108 @@ const SavedCardsScreen = ({ navigation }) => {
             </View>
             
             <ScrollView style={styles.modalContent}>
-              {/* Card Preview */}
-              <View style={styles.cardPreview}>
-                <View style={[styles.previewCard, { backgroundColor: getCardType(newCard.cardNumber) === 'visa' ? '#1A1F71' : 
-                  getCardType(newCard.cardNumber) === 'mastercard' ? '#EB001B' : '#4A4A4A' }]}>
-                  <View style={styles.previewCardHeader}>
-                    <Text style={styles.previewCardType}>
-                      {getCardType(newCard.cardNumber).toUpperCase()}
-                    </Text>
-                  </View>
-                  <Text style={styles.previewCardNumber}>
-                    {newCard.cardNumber || '•••• •••• •••• ••••'}
-                  </Text>
-                  <View style={styles.previewCardDetails}>
-                    <View>
-                      <Text style={styles.previewCardLabel}>CARD HOLDER</Text>
-                      <Text style={styles.previewCardValue}>
-                        {newCard.cardHolder || 'YOUR NAME'}
-                      </Text>
-                    </View>
-                    <View>
-                      <Text style={styles.previewCardLabel}>VALID THRU</Text>
-                      <Text style={styles.previewCardValue}>
-                        {newCard.expiryMonth && newCard.expiryYear 
-                          ? `${newCard.expiryMonth}/${newCard.expiryYear.slice(-2)}` 
-                          : 'MM/YY'}
-                      </Text>
-                    </View>
-                  </View>
+              {/* Card Preview with Flip Animation */}
+              <TouchableOpacity onPress={flipCard} activeOpacity={0.9}>
+                <Animated.View
+                  style={[
+                    styles.cardPreviewContainer,
+                    {
+                      transform: [
+                        {
+                          rotateY: cardFlipAnim.interpolate({
+                            inputRange: [0, 180],
+                            outputRange: ['0deg', '180deg']
+                          })
+                        }
+                      ]
+                    }
+                  ]}
+                >
+                  {/* Front side */}
+                  <Animated.View
+                    style={[
+                      styles.cardFront,
+                      {
+                        opacity: cardFlipAnim.interpolate({
+                          inputRange: [0, 90],
+                          outputRange: [1, 0]
+                        })
+                      }
+                    ]}
+                  >
+                    {renderCardFront()}
+                  </Animated.View>
+                  
+                  {/* Back side */}
+                  <Animated.View
+                    style={[
+                      styles.cardBack,
+                      {
+                        opacity: cardFlipAnim.interpolate({
+                          inputRange: [90, 180],
+                          outputRange: [0, 1]
+                        })
+                      }
+                    ]}
+                  >
+                    {renderCardBack()}
+                  </Animated.View>
+                </Animated.View>
+              </TouchableOpacity>
+              
+              <View style={styles.flipHintContainer}>
+                <Ionicons name="sync" size={16} color="#666" />
+                <Text style={styles.flipHintText}>Tap card to flip and see CVV</Text>
+              </View>
+
+              {/* Card Design Selection */}
+              <View style={styles.formGroup}>
+                <Text style={styles.inputLabel}>Card Design</Text>
+                <View style={styles.cardDesignOptions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.cardDesignOption,
+                      newCard.cardDesign === 'classic' && styles.cardDesignOptionActive
+                    ]}
+                    onPress={() => setNewCard({ ...newCard, cardDesign: 'classic' })}
+                  >
+                    <LinearGradient
+                      colors={['#1A2980', '#26D0CE']}
+                      style={styles.designPreview}
+                    >
+                      <Text style={styles.designPreviewText}>CLASSIC</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.cardDesignOption,
+                      newCard.cardDesign === 'premium' && styles.cardDesignOptionActive
+                    ]}
+                    onPress={() => setNewCard({ ...newCard, cardDesign: 'premium' })}
+                  >
+                    <LinearGradient
+                      colors={['#FF6F00', '#FFA000']}
+                      style={styles.designPreview}
+                    >
+                      <Text style={styles.designPreviewText}>PREMIUM</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.cardDesignOption,
+                      newCard.cardDesign === 'metal' && styles.cardDesignOptionActive
+                    ]}
+                    onPress={() => setNewCard({ ...newCard, cardDesign: 'metal' })}
+                  >
+                    <LinearGradient
+                      colors={['#37474F', '#546E7A']}
+                      style={styles.designPreview}
+                    >
+                      <Text style={styles.designPreviewText}>METAL</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -865,7 +1155,7 @@ const SavedCardsScreen = ({ navigation }) => {
                     onChangeText={(text) => setNewCard({ ...newCard, cvv: text })}
                     keyboardType="numeric"
                     maxLength={4}
-                    secureTextEntry
+                    secureTextEntry={!isCardFlipped}
                   />
                 </View>
               </View>
@@ -1151,82 +1441,145 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  // Saved Card Item Styles
   cardItem: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e0e0e0',
     overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
-  cardHeader: {
+  savedCardPreview: {
+    padding: 20,
+    borderRadius: 16,
+    minHeight: 200,
+    justifyContent: 'space-between',
+  },
+  savedCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    marginBottom: 20,
   },
-  cardBrand: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  savedCardBank: {
+    flex: 1,
   },
-  cardBrandText: {
+  savedCardBankName: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginLeft: 8,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
-  defaultBadge: {
+  savedCardType: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
+  savedDefaultBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 12,
   },
-  defaultBadgeText: {
+  savedDefaultBadgeText: {
     color: '#fff',
     fontSize: 10,
     fontWeight: '600',
     marginLeft: 4,
   },
-  cardBody: {
-    padding: 16,
+  savedCardChip: {
+    width: 50,
+    height: 40,
+    backgroundColor: '#FFD700',
+    borderRadius: 8,
+    marginBottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-  cardNumber: {
-    fontSize: 20,
+  savedChipInner: {
+    width: 40,
+    height: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 6,
+  },
+  savedCardNumber: {
+    color: '#fff',
+    fontSize: 24,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 16,
-    letterSpacing: 2,
+    letterSpacing: 3,
+    marginBottom: 20,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
-  cardDetails: {
+  savedCardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
-  cardDetailItem: {
-    flex: 1,
-  },
-  cardDetailLabel: {
-    fontSize: 12,
-    color: '#666',
+  savedCardLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 10,
     marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
-  cardDetailValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
+  savedCardHolder: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  savedCardExpiry: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  savedCardBrand: {
+    alignItems: 'flex-end',
+  },
+  savedCardBrandText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   cardActions: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    backgroundColor: '#fff',
+    padding: 12,
   },
   cardActionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
     gap: 6,
   },
   cardActionText: {
@@ -1239,6 +1592,327 @@ const styles = StyleSheet.create({
   deleteActionText: {
     color: '#F44336',
   },
+  // Card Preview Styles (Modal)
+  cardPreviewContainer: {
+    width: width * 0.85,
+    height: 220,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  cardFront: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backfaceVisibility: 'hidden',
+  },
+  cardBack: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backfaceVisibility: 'hidden',
+    transform: [{ rotateY: '180deg' }],
+  },
+  previewCard: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+    padding: 20,
+    justifyContent: 'space-between',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  previewCardBack: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+    padding: 20,
+    justifyContent: 'space-between',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  // Card Front Elements
+  cardTopSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  cardChipContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardChip: {
+    width: 60,
+    height: 45,
+    backgroundColor: '#FFD700',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  chipLines: {
+    width: 40,
+    height: 30,
+  },
+  chipLine1: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    right: 5,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  chipLine2: {
+    position: 'absolute',
+    top: 10,
+    left: 5,
+    right: 5,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  chipLine3: {
+    position: 'absolute',
+    top: 15,
+    left: 5,
+    right: 5,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  chipLine4: {
+    position: 'absolute',
+    top: 20,
+    left: 5,
+    right: 5,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  cardContactless: {
+    marginLeft: 10,
+  },
+  cardBankInfo: {
+    alignItems: 'flex-end',
+  },
+  cardBankName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  cardTypeText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  cardNumberContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  cardNumberText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '600',
+    letterSpacing: 4,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  cardBottomSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  cardHolderContainer: {
+    flex: 2,
+  },
+  cardExpiryContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  cardLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 10,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  cardHolderText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  cardExpiryText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  cardBrandLogo: {
+    alignItems: 'flex-end',
+  },
+  cardBrandText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  cardDecorations: {
+    position: 'absolute',
+    right: 20,
+    top: 20,
+    opacity: 0.1,
+  },
+  decorationCircle1: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#fff',
+    position: 'absolute',
+    top: -30,
+    right: -30,
+  },
+  decorationCircle2: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    position: 'absolute',
+    top: 10,
+    right: 10,
+  },
+  decorationCircle3: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#fff',
+    position: 'absolute',
+    top: 40,
+    right: -15,
+  },
+  // Card Back Elements
+  magneticStrip: {
+    height: 50,
+    backgroundColor: '#000',
+    marginTop: 20,
+    borderRadius: 4,
+  },
+  cvvStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  cvvLabel: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cvvBox: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 4,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  cvvText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 2,
+  },
+  cardBackInfo: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  cardBackText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 10,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  hologram: {
+    position: 'absolute',
+    right: 20,
+    top: 80,
+    width: 60,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hologramInner: {
+    width: 50,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hologramText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  flipHintContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  flipHintText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+  },
+  cardDesignOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  cardDesignOption: {
+    flex: 1,
+    marginHorizontal: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  cardDesignOptionActive: {
+    borderColor: '#2196F3',
+  },
+  designPreview: {
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  designPreviewText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  // Rest of the styles remain the same...
   upiItem: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -1382,56 +2056,6 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     padding: 20,
-  },
-  cardPreview: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  previewCard: {
-    width: width * 0.8,
-    height: 200,
-    borderRadius: 16,
-    padding: 20,
-    justifyContent: 'space-between',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  previewCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  previewCardType: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    opacity: 0.9,
-  },
-  previewCardNumber: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: '600',
-    letterSpacing: 2,
-    textAlign: 'center',
-  },
-  previewCardDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  previewCardLabel: {
-    color: '#fff',
-    fontSize: 10,
-    opacity: 0.8,
-    marginBottom: 4,
-  },
-  previewCardValue: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   formGroup: {
     marginBottom: 16,

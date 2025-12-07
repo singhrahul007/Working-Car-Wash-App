@@ -1,5 +1,5 @@
 // screens/LoginScreen.js
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react'; // Added useEffect
 import {
   View,
   Text,
@@ -35,7 +35,40 @@ const LoginScreen = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
-  // Google Auth
+  // Add useEffect to trigger animation on mount
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // Also trigger animation when loginType changes
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [loginType]);
+
+  // For development/testing, you can use these test credentials:
+  // Google test config (you need to set up your own in production)
   const [request, response, promptAsync] = Google.useAuthRequest({
     expoClientId: 'YOUR_GOOGLE_EXPO_CLIENT_ID',
     iosClientId: 'YOUR_GOOGLE_IOS_CLIENT_ID',
@@ -43,71 +76,115 @@ const LoginScreen = ({ navigation }) => {
     webClientId: 'YOUR_GOOGLE_WEB_CLIENT_ID',
   });
 
-  // Facebook Auth
+  // Facebook Auth (for testing, you can mock the function)
   const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
     clientId: 'YOUR_FACEBOOK_APP_ID',
   });
 
-  // Handle Google Sign In
+  // Handle Google Sign In (mocked for testing)
   const handleGoogleSignIn = async () => {
     try {
-      const result = await promptAsync();
-      if (result.type === 'success') {
-        // Exchange auth code for tokens
-        const { authentication } = result;
-        // Call your backend with the access token
-        console.log('Google Auth Success:', authentication);
-        // Navigate to OTP verification or home
-        navigation.navigate('OTPVerification', {
-          type: 'google',
-          token: authentication.accessToken,
-        });
-      }
+      // For testing without actual Google setup
+      Alert.alert(
+        'Google Sign In',
+        'Google sign in would trigger here. For testing, you can: \n1. Set up Google OAuth in Firebase/Google Cloud\n2. Use expo-auth-session with proper credentials\n3. Or mock this function for development',
+        [
+          {
+            text: 'Mock Success',
+            onPress: () => {
+              console.log('Mock Google Sign In Success');
+              navigation.navigate('OTPVerification', {
+                type: 'google',
+                token: 'mock-google-token',
+              });
+            }
+          },
+          { text: 'Cancel' }
+        ]
+      );
+      
+      // Uncomment for real implementation:
+      // const result = await promptAsync();
+      // if (result.type === 'success') {
+      //   const { authentication } = result;
+      //   navigation.navigate('OTPVerification', {
+      //     type: 'google',
+      //     token: authentication.accessToken,
+      //   });
+      // }
     } catch (error) {
       Alert.alert('Error', 'Failed to sign in with Google');
       console.error('Google Sign In Error:', error);
     }
   };
 
-  // Handle Facebook Sign In
+  // Handle Facebook Sign In (mocked for testing)
   const handleFacebookSignIn = async () => {
     try {
-      const result = await fbPromptAsync();
-      if (result.type === 'success') {
-        // Handle Facebook auth success
-        console.log('Facebook Auth Success:', result);
-        navigation.navigate('OTPVerification', {
-          type: 'facebook',
-          token: result.params.access_token,
-        });
-      }
+      // For testing without actual Facebook setup
+      Alert.alert(
+        'Facebook Sign In',
+        'Facebook sign in would trigger here. For testing, you need to:\n1. Create Facebook App at developers.facebook.com\n2. Configure expo-auth-session\n3. Or mock this function',
+        [
+          {
+            text: 'Mock Success',
+            onPress: () => {
+              console.log('Mock Facebook Sign In Success');
+              navigation.navigate('OTPVerification', {
+                type: 'facebook',
+                token: 'mock-facebook-token',
+              });
+            }
+          },
+          { text: 'Cancel' }
+        ]
+      );
     } catch (error) {
       Alert.alert('Error', 'Failed to sign in with Facebook');
       console.error('Facebook Sign In Error:', error);
     }
   };
 
-  // Handle Apple Sign In
+  // Handle Apple Sign In (mocked for testing)
   const handleAppleSignIn = async () => {
     try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-      
-      // Handle Apple auth success
-      console.log('Apple Auth Success:', credential);
-      navigation.navigate('OTPVerification', {
-        type: 'apple',
-        credential: credential,
-      });
-    } catch (error) {
-      if (error.code === 'ERR_CANCELED') {
-        // User canceled Apple Sign In
+      // For testing on non-iOS devices or without Apple setup
+      if (Platform.OS !== 'ios') {
+        Alert.alert('Info', 'Apple Sign In is only available on iOS devices');
         return;
       }
+      
+      Alert.alert(
+        'Apple Sign In',
+        'Apple sign in would trigger here. Requires:\n1. iOS device with iOS 13+\n2. Apple Developer account\n3. Configure Sign in with Apple in Xcode',
+        [
+          {
+            text: 'Mock Success',
+            onPress: () => {
+              console.log('Mock Apple Sign In Success');
+              navigation.navigate('OTPVerification', {
+                type: 'apple',
+                credential: { user: 'mock-apple-user' },
+              });
+            }
+          },
+          { text: 'Cancel' }
+        ]
+      );
+      
+      // Uncomment for real implementation on iOS:
+      // const credential = await AppleAuthentication.signInAsync({
+      //   requestedScopes: [
+      //     AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+      //     AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      //   ],
+      // });
+      // navigation.navigate('OTPVerification', {
+      //   type: 'apple',
+      //   credential: credential,
+      // });
+    } catch (error) {
+      if (error.code === 'ERR_CANCELED') return;
       Alert.alert('Error', 'Failed to sign in with Apple');
       console.error('Apple Sign In Error:', error);
     }
@@ -142,11 +219,20 @@ const LoginScreen = ({ navigation }) => {
       // Simulate API call to send OTP
       setTimeout(() => {
         setLoading(false);
-        navigation.navigate('OTPVerification', {
-          type: type,
-          value: value,
-          flow: 'login',
-        });
+        Alert.alert(
+          'OTP Sent',
+          `OTP has been sent to ${type === 'mobile' ? 'mobile number' : 'email'}: ${value}`,
+          [
+            {
+              text: 'Continue',
+              onPress: () => navigation.navigate('OTPVerification', {
+                type: type,
+                value: value,
+                flow: 'login',
+              })
+            }
+          ]
+        );
       }, 1500);
     } catch (error) {
       setLoading(false);
@@ -157,15 +243,34 @@ const LoginScreen = ({ navigation }) => {
   const handleEmailLogin = async () => {
     setLoading(true);
     try {
-      // Simulate API call for email login
+      // For testing - accept any email/password
       setTimeout(() => {
         setLoading(false);
-        // Check if 2FA is enabled
-        const has2FA = false; // This would come from your API
-        if (has2FA) {
-          navigation.navigate('TwoFactorAuth');
+        
+        // Test credentials for demo
+        const testEmail = 'test@example.com';
+        const testPassword = 'password123';
+        
+        if (email === testEmail && password === testPassword) {
+          // Check if 2FA is enabled (mock for testing)
+          const has2FA = false; // Change to true to test 2FA flow
+          
+          if (has2FA) {
+            navigation.navigate('TwoFactorAuth');
+          } else {
+            Alert.alert(
+              'Login Successful',
+              'You have successfully logged in!',
+              [
+                {
+                  text: 'Continue',
+                  onPress: () => navigation.replace('MainTabs')
+                }
+              ]
+            );
+          }
         } else {
-          navigation.replace('MainTabs');
+          Alert.alert('Login Failed', 'Invalid email or password. Try:\nEmail: test@example.com\nPassword: password123');
         }
       }, 1500);
     } catch (error) {
@@ -177,6 +282,13 @@ const LoginScreen = ({ navigation }) => {
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
+  };
+
+  // Add helper function for demo
+  const fillDemoCredentials = () => {
+    setEmail('test@example.com');
+    setPassword('password123');
+    Alert.alert('Demo Credentials', 'Email: test@example.com\nPassword: password123\n\nUse these for testing.');
   };
 
   return (
@@ -198,7 +310,12 @@ const LoginScreen = ({ navigation }) => {
               <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
             <Text style={styles.title}>Sign In</Text>
-            <View style={styles.headerRight} />
+            <TouchableOpacity
+              style={styles.demoButton}
+              onPress={fillDemoCredentials}
+            >
+              <Text style={styles.demoButtonText}>Demo</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Login Type Toggle */}
@@ -248,7 +365,7 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Form */}
+          {/* Form - Now visible with animation */}
           <Animated.View
             style={[
               styles.formContainer,
@@ -275,6 +392,7 @@ const LoginScreen = ({ navigation }) => {
                     autoFocus
                   />
                 </View>
+                <Text style={styles.hintText}>For testing: Enter any 10-digit number</Text>
               </View>
             ) : (
               <>
@@ -282,7 +400,7 @@ const LoginScreen = ({ navigation }) => {
                   <Text style={styles.label}>Email Address</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Enter your email"
+                    placeholder="test@example.com"
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -296,7 +414,7 @@ const LoginScreen = ({ navigation }) => {
                   <View style={styles.passwordContainer}>
                     <TextInput
                       style={styles.passwordInput}
-                      placeholder="Enter your password"
+                      placeholder="password123"
                       value={password}
                       onChangeText={setPassword}
                       secureTextEntry={!showPassword}
@@ -321,7 +439,10 @@ const LoginScreen = ({ navigation }) => {
                     style={styles.rememberMeContainer}
                     onPress={() => setRememberMe(!rememberMe)}
                   >
-                    <View style={styles.checkbox}>
+                    <View style={[
+                      styles.checkbox,
+                      rememberMe && styles.checkboxChecked
+                    ]}>
                       {rememberMe && (
                         <Ionicons name="checkmark" size={16} color="#fff" />
                       )}
@@ -374,7 +495,6 @@ const LoginScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={[styles.socialButton, styles.googleButton]}
                 onPress={handleGoogleSignIn}
-                disabled={!request}
               >
                 <FontAwesome name="google" size={20} color="#DB4437" />
               </TouchableOpacity>
@@ -382,7 +502,6 @@ const LoginScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={[styles.socialButton, styles.facebookButton]}
                 onPress={handleFacebookSignIn}
-                disabled={!fbRequest}
               >
                 <FontAwesome name="facebook-f" size={20} color="#4267B2" />
               </TouchableOpacity>
@@ -400,8 +519,8 @@ const LoginScreen = ({ navigation }) => {
           {/* Terms */}
           <Text style={styles.termsText}>
             By signing in, you agree to our{' '}
-            <Text style={styles.linkText}>Terms</Text> and{' '}
-            <Text style={styles.linkText}>Privacy Policy</Text>
+            <Text style={styles.linkText} onPress={() => Alert.alert('Terms', 'Terms of Service content would appear here.')}>Terms</Text> and{' '}
+            <Text style={styles.linkText} onPress={() => Alert.alert('Privacy Policy', 'Privacy Policy content would appear here.')}>Privacy Policy</Text>
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -433,8 +552,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  headerRight: {
-    width: 40,
+  demoButton: {
+    padding: 8,
+  },
+  demoButtonText: {
+    color: '#2196F3',
+    fontWeight: '600',
+    fontSize: 14,
   },
   loginTypeContainer: {
     flexDirection: 'row',
@@ -480,6 +604,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#333',
     marginBottom: 8,
+  },
+  hintText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   mobileInputContainer: {
     flexDirection: 'row',
@@ -552,9 +682,12 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#ddd',
-    backgroundColor: '#2196F3',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#2196F3',
+    borderColor: '#2196F3',
   },
   rememberMeText: {
     fontSize: 14,
