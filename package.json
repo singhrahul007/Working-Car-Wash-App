@@ -35,11 +35,13 @@
     "react-native-screens": "~3.20.0",
     "react-native-vector-icons": "^9.2.0",
     "react-redux": "^8.1.1",
-    "@expo/config-plugins": "~6.0.0"
+    "@expo/config-plugins": "~6.0.0",
+    "expo-auth-session": "~4.0.3",
+    "expo-apple-authentication": "~6.0.1",
+    "expo-web-browser": "~12.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "@expo/config-plugins": "~7.6.0",
     "jest-expo": "~48.0.0"
   },
   "private": true

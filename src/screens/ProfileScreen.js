@@ -31,6 +31,7 @@ export default function ProfileScreen() {
     joinedDate: '15 Jan 2025',
     totalBookings: 12,
     loyaltyPoints: 450,
+    isLoggedIn: true, // Added login state
   });
   
   // Settings State
@@ -60,8 +61,9 @@ export default function ProfileScreen() {
     try {
       const savedUser = await AsyncStorage.getItem('@carwash_user');
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
-        setTempUser(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        setTempUser(parsedUser);
       }
     } catch (error) {
       console.log('Error loading user data:', error);
@@ -133,6 +135,23 @@ export default function ProfileScreen() {
     }
   };
 
+  // User Management Navigation Functions
+  const handleLogin = () => {
+    navigation.navigate('Login');
+  };
+
+  const handleSignUp = () => {
+    navigation.navigate('SignUp');
+  };
+
+  const handleForgotPassword = () => {
+    navigation.navigate('ForgotPassword');
+  };
+
+  const handleTwoFactorAuth = () => {
+    navigation.navigate('TwoFactorAuth');
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -143,12 +162,17 @@ export default function ProfileScreen() {
           text: 'Logout',
           style: 'destructive',
           onPress: () => {
-            // Clear user session
+            // Clear user session and set as logged out
             AsyncStorage.multiRemove(['@carwash_user', '@carwash_token']);
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Splash' }],
+            setUser({
+              ...user,
+              name: 'Guest User',
+              email: 'Login to access all features',
+              phone: '',
+              profileImage: null,
+              isLoggedIn: false
             });
+            Alert.alert('Logged Out', 'You have been successfully logged out.');
           }
         }
       ]
@@ -176,9 +200,15 @@ export default function ProfileScreen() {
               
               setTimeout(() => {
                 setLoading(false);
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'Splash' }],
+                setUser({
+                  name: 'Guest User',
+                  email: 'Login to access all features',
+                  phone: '',
+                  profileImage: null,
+                  joinedDate: '15 Jan 2025',
+                  totalBookings: 0,
+                  loyaltyPoints: 0,
+                  isLoggedIn: false
                 });
                 Alert.alert('Account Deleted', 'Your account has been successfully deleted.');
               }, 1500);
@@ -192,6 +222,7 @@ export default function ProfileScreen() {
     );
   };
 
+  // Menu Items
   const profileMenuItems = [
     {
       id: 1,
@@ -220,6 +251,31 @@ export default function ProfileScreen() {
       icon: 'heart',
       color: '#F44336',
       action: () => Alert.alert('Wishlist', 'View your saved items here.')
+    },
+  ];
+
+  // User Management Menu Items (only shown when logged in)
+  const userManagementItems = [
+    {
+      id: 1,
+      title: 'Change Password',
+      icon: 'lock-reset',
+      color: '#FF9800',
+      action: handleForgotPassword
+    },
+    {
+      id: 2,
+      title: 'Two-Factor Auth',
+      icon: 'shield-lock',
+      color: '#4CAF50',
+      action: handleTwoFactorAuth
+    },
+    {
+      id: 3,
+      title: 'Privacy Settings',
+      icon: 'shield-account',
+      color: '#2196F3',
+      action: () => Alert.alert('Privacy Settings', 'Manage your privacy preferences.')
     },
   ];
 
@@ -319,48 +375,84 @@ export default function ProfileScreen() {
     },
   ];
 
-  const renderProfileHeader = () => (
-    <View style={styles.profileHeader}>
-      {/* Profile Image */}
-      <TouchableOpacity onPress={handlePickImage} style={styles.profileImageContainer}>
-        {tempUser.profileImage ? (
-          <Image source={{ uri: tempUser.profileImage }} style={styles.profileImage} />
-        ) : (
+  const renderProfileHeader = () => {
+    if (!user.isLoggedIn) {
+      return (
+        <View style={styles.profileHeader}>
+          {/* Profile Image for Guest */}
           <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
             <Icon name="account" size={50} color="#FFFFFF" />
           </View>
-        )}
-        <View style={styles.editImageButton}>
-          <Icon name="camera" size={16} color="#FFFFFF" />
+          
+          {/* User Info for Guest */}
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>Guest User</Text>
+            <Text style={styles.userEmail}>Login to access all features</Text>
+            
+            {/* Auth Buttons */}
+            <View style={styles.authButtons}>
+              <TouchableOpacity 
+                style={styles.loginButton}
+                onPress={handleLogin}
+              >
+                <Text style={styles.loginButtonText}>Login</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.signupButton}
+                onPress={handleSignUp}
+              >
+                <Text style={styles.signupButtonText}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </TouchableOpacity>
+      );
+    }
 
-      {/* User Info */}
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{tempUser.name}</Text>
-        <Text style={styles.userEmail}>{tempUser.email}</Text>
-        <Text style={styles.userPhone}>{tempUser.phone}</Text>
-        
-        {/* Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{user.totalBookings}</Text>
-            <Text style={styles.statLabel}>Bookings</Text>
+    return (
+      <View style={styles.profileHeader}>
+        {/* Profile Image */}
+        <TouchableOpacity onPress={handlePickImage} style={styles.profileImageContainer}>
+          {tempUser.profileImage ? (
+            <Image source={{ uri: tempUser.profileImage }} style={styles.profileImage} />
+          ) : (
+            <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+              <Icon name="account" size={50} color="#FFFFFF" />
+            </View>
+          )}
+          <View style={styles.editImageButton}>
+            <Icon name="camera" size={16} color="#FFFFFF" />
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{user.loyaltyPoints}</Text>
-            <Text style={styles.statLabel}>Points</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>Gold</Text>
-            <Text style={styles.statLabel}>Tier</Text>
+        </TouchableOpacity>
+
+        {/* User Info */}
+        <View style={styles.userInfo}>
+          <Text style={styles.userName}>{tempUser.name}</Text>
+          <Text style={styles.userEmail}>{tempUser.email}</Text>
+          <Text style={styles.userPhone}>{tempUser.phone}</Text>
+          
+          {/* Stats */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{user.totalBookings}</Text>
+              <Text style={styles.statLabel}>Bookings</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{user.loyaltyPoints}</Text>
+              <Text style={styles.statLabel}>Points</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>Gold</Text>
+              <Text style={styles.statLabel}>Tier</Text>
+            </View>
           </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderEditModal = () => (
     <Modal
@@ -487,98 +579,132 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Profile</Text>
-        <TouchableOpacity 
-          style={styles.editButton}
-          onPress={handleEditProfile}
-        >
-          <Icon name="pencil" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
+        {user.isLoggedIn && (
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={handleEditProfile}
+          >
+            <Icon name="pencil" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Info */}
         {renderProfileHeader()}
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Booking', { vehicle: 'car' })}
-          >
-            <Icon name="plus-circle" size={24} color="#4A90E2" />
-            <Text style={styles.actionText}>New Booking</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => setShowSettingsModal(true)}
-          >
-            <Icon name="cog" size={24} color="#4A90E2" />
-            <Text style={styles.actionText}>Settings</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Support')}
-          >
-            <Icon name="headset" size={24} color="#4A90E2" />
-            <Text style={styles.actionText}>Support</Text>
-          </TouchableOpacity>
-        </View>
+        {user.isLoggedIn ? (
+          <>
+            {/* Quick Actions */}
+            <View style={styles.quickActions}>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('Booking', { vehicle: 'car' })}
+              >
+                <Icon name="plus-circle" size={24} color="#4A90E2" />
+                <Text style={styles.actionText}>New Booking</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => setShowSettingsModal(true)}
+              >
+                <Icon name="cog" size={24} color="#4A90E2" />
+                <Text style={styles.actionText}>Settings</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('Support')}
+              >
+                <Icon name="headset" size={24} color="#4A90E2" />
+                <Text style={styles.actionText}>Support</Text>
+              </TouchableOpacity>
+            </View>
 
-        {/* Profile Menu */}
-        {renderMenuSection('My Account', profileMenuItems)}
+            {/* Profile Menu */}
+            {renderMenuSection('My Account', profileMenuItems)}
 
-        {/* Settings Menu */}
-        <View style={styles.menuSection}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-          <View style={styles.menuContainer}>
-            {settingsMenuItems.map((item) => (
-              <View key={item.id} style={styles.menuItem}>
-                <View style={[styles.menuIconContainer, { backgroundColor: '#4A90E2' + '20' }]}>
-                  <Icon name={item.icon} size={22} color="#4A90E2" />
-                </View>
-                <Text style={styles.menuTitle}>{item.title}</Text>
-                <Switch
-                  value={item.value}
-                  onValueChange={item.onValueChange}
-                  trackColor={{ false: '#D1D5DB', true: '#4A90E2' }}
-                  thumbColor={item.value ? '#FFFFFF' : '#FFFFFF'}
-                />
+            {/* User Management Section */}
+            {renderMenuSection('Account Security', userManagementItems)}
+
+            {/* Settings Menu */}
+            <View style={styles.menuSection}>
+              <Text style={styles.sectionTitle}>Settings</Text>
+              <View style={styles.menuContainer}>
+                {settingsMenuItems.map((item) => (
+                  <View key={item.id} style={styles.menuItem}>
+                    <View style={[styles.menuIconContainer, { backgroundColor: '#4A90E2' + '20' }]}>
+                      <Icon name={item.icon} size={22} color="#4A90E2" />
+                    </View>
+                    <Text style={styles.menuTitle}>{item.title}</Text>
+                    <Switch
+                      value={item.value}
+                      onValueChange={item.onValueChange}
+                      trackColor={{ false: '#D1D5DB', true: '#4A90E2' }}
+                      thumbColor={item.value ? '#FFFFFF' : '#FFFFFF'}
+                    />
+                  </View>
+                ))}
               </View>
-            ))}
+            </View>
+
+            {/* Support & Legal */}
+            {renderMenuSection('Support & Legal', supportMenuItems)}
+
+            {/* Account Actions */}
+            <View style={styles.accountActions}>
+              <TouchableOpacity 
+                style={styles.logoutButton}
+                onPress={handleLogout}
+              >
+                <Icon name="logout" size={20} color="#F44336" />
+                <Text style={styles.logoutText}>Logout</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.deleteButton}
+                onPress={handleDeleteAccount}
+              >
+                <Icon name="delete" size={20} color="#FFFFFF" />
+                <Text style={styles.deleteText}>Delete Account</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* App Info */}
+            <View style={styles.appInfo}>
+              <Text style={styles.appName}>Washing Express India</Text>
+              <Text style={styles.appVersion}>Version 1.0.0</Text>
+              <Text style={styles.appCopyright}>© 2024 WashingExpress India. All rights reserved.</Text>
+              <Text style={styles.memberSince}>Member since {user.joinedDate}</Text>
+            </View>
+          </>
+        ) : (
+          /* Guest View */
+          <View style={styles.guestView}>
+            <Text style={styles.guestMessage}>
+              Login to access all features including:
+            </Text>
+            <View style={styles.guestFeatures}>
+              <View style={styles.featureItem}>
+                <Icon name="check-circle" size={20} color="#4CAF50" />
+                <Text style={styles.featureText}>Track your bookings</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="check-circle" size={20} color="#4CAF50" />
+                <Text style={styles.featureText}>Save payment methods</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="check-circle" size={20} color="#4CAF50" />
+                <Text style={styles.featureText}>Earn loyalty points</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="check-circle" size={20} color="#4CAF50" />
+                <Text style={styles.featureText}>Get exclusive offers</Text>
+              </View>
+            </View>
           </View>
-        </View>
-
-        {/* Support & Legal */}
-        {renderMenuSection('Support & Legal', supportMenuItems)}
-
-        {/* Account Actions */}
-        <View style={styles.accountActions}>
-          <TouchableOpacity 
-            style={styles.logoutButton}
-            onPress={handleLogout}
-          >
-            <Icon name="logout" size={20} color="#F44336" />
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.deleteButton}
-            onPress={handleDeleteAccount}
-          >
-            <Icon name="delete" size={20} color="#FFFFFF" />
-            <Text style={styles.deleteText}>Delete Account</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* App Info */}
-        <View style={styles.appInfo}>
-          <Text style={styles.appName}>Washing Express India</Text>
-          <Text style={styles.appVersion}>Version 1.0.0</Text>
-          <Text style={styles.appCopyright}>© 2024 WashingExpress India. All rights reserved.</Text>
-          <Text style={styles.memberSince}>Member since {user.joinedDate}</Text>
-        </View>
+        )}
 
         <View style={{ height: 30 }} />
       </ScrollView>
@@ -725,6 +851,37 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 20,
   },
+  authButtons: {
+    flexDirection: 'row',
+    marginTop: 20,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  loginButton: {
+    backgroundColor: '#4A90E2',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  signupButton: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#4A90E2',
+  },
+  signupButtonText: {
+    color: '#4A90E2',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   statsContainer: {
     flexDirection: 'row',
     backgroundColor: '#F8FAFC',
@@ -801,6 +958,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1F2937',
     flex: 1,
+  },
+  guestView: {
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+    margin: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  guestMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  guestFeatures: {
+    width: '100%',
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  featureText: {
+    fontSize: 14,
+    color: '#4B5563',
+    marginLeft: 12,
   },
   accountActions: {
     marginTop: 30,

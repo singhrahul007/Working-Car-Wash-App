@@ -19,9 +19,20 @@ import CartScreen from '../screens/CartScreen';
 import OffersScreen from '../screens/OffersScreen';
 import SavedCardsScreen from '../screens/SavedCardsScreen';
 
+// Imports for User Management (Make sure these files exist in the specified path)
+// Alternative: Import from index file
+import {
+  WelcomeScreen,
+  LoginScreen,
+  SignUpScreen,
+  ForgotPasswordScreen,
+  GuestCheckoutScreen,
+  OTPVerificationScreen,
+  TwoFactorAuthScreen
+} from '../screens/UserManagement';
+
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
-
 
 function CameraScreen() {
   return (
@@ -40,17 +51,17 @@ function MainTabNavigator() {
         tabBarIcon: ({ focused, color, size }) => {
           let icon;
           if (route.name === 'Home') {
-            icon = focused ? '🏠' : '🏠';
+            icon = '🏠';
           } else if (route.name === 'Orders') {
-            icon = focused ? '📦' : '📦';
+            icon = '📦';
           } else if (route.name === 'Cart') {
-            icon = focused ? '🛒' : '🛒';
+            icon = '🛒';
           } else if (route.name === 'Profile') {
-            icon = focused ? '👤' : '👤';
+            icon = '👤';
           } else if (route.name === 'Offers') {
-            icon = focused ? '🎁' : '🎁';
-          }else if (route.name === 'Wallet') {
-            icon = focused ? '💰' : '💰';
+            icon = '🎁';
+          } else if (route.name === 'Wallet') {
+            icon = '💰';
           }
           return <Text style={{ fontSize: 24 }}>{icon}</Text>;
         },
@@ -64,7 +75,9 @@ function MainTabNavigator() {
       <Tab.Screen name="Orders" component={OrdersScreen} />
       <Tab.Screen name="Cart" component={CartScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
-      <Tab.Screen name="Wallet"  component={SavedCardsScreen}
+      <Tab.Screen 
+        name="Wallet"  
+        component={SavedCardsScreen}
         options={{ title: 'Wallet' }}
       />
     </Tab.Navigator>
@@ -74,7 +87,83 @@ function MainTabNavigator() {
 // Main Stack Navigator
 export default function MainNavigator() {
   return (
-    <Stack.Navigator initialRouteName="Splash">
+    <Stack.Navigator initialRouteName="Welcome">
+      {/* User Management Screens */}
+      <Stack.Screen 
+        name="Welcome" 
+        component={WelcomeScreen} 
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="Login" 
+        component={LoginScreen}
+        options={{
+          headerShown: true,
+          title: 'Login',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen 
+        name="SignUp" 
+        component={SignUpScreen}
+        options={{
+          headerShown: true,
+          title: 'Sign Up',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen 
+        name="ForgotPassword" 
+        component={ForgotPasswordScreen}
+        options={{
+          headerShown: true,
+          title: 'Forgot Password',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen 
+        name="GuestCheckout" 
+        component={GuestCheckoutScreen}
+        options={{
+          headerShown: true,
+          title: 'Guest Checkout',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen 
+        name="OTPVerification" 
+        component={OTPVerificationScreen}
+        options={{
+          headerShown: true,
+          title: 'Verify OTP',
+          headerBackTitle: 'Back',
+          headerStyle: {
+            backgroundColor: '#4A90E2',
+          },
+          headerTintColor: '#FFFFFF',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      />
+      <Stack.Screen 
+        name="TwoFactorAuth" 
+        component={TwoFactorAuthScreen}
+        options={{
+          headerShown: true,
+          title: 'Two-Factor Authentication',
+          headerBackTitle: 'Back',
+          headerStyle: {
+            backgroundColor: '#4A90E2',
+          },
+          headerTintColor: '#FFFFFF',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      />
+
+      {/* Main App Screens */}
       <Stack.Screen
         name="Splash"
         component={SplashScreen}
@@ -97,9 +186,9 @@ export default function MainNavigator() {
         name="Order"
         component={OrdersScreen}
         options={{
-        title: 'My Bookings',
-        headerBackTitle: 'Back',
-      }}
+          title: 'My Bookings',
+          headerBackTitle: 'Back',
+        }}
       />
       <Stack.Screen
         name="Otp"
@@ -132,35 +221,39 @@ export default function MainNavigator() {
           title: 'AC Services',
           headerBackTitle: 'Back',
         }}
-        />
-        <Stack.Screen
-          name="SofaCleaning"
-          component={SofaCleaningScreen}
-          options={{
-            title: 'Sofa Cleaning',
-            headerBackTitle: 'Back',
-          }}
-        />
-
-        <Stack.Screen
-          name="CarpetCleaning"
-          component={CarpetCleaningScreen}
-          options={{
-            title: 'Carpet Cleaning',
-            headerBackTitle: 'Back',
-          }}
-        />
-        <Stack.Screen
-          name="Support"
-          component={SupportScreen}
-          options={{
-            title: 'Help & Support',
-            headerBackTitle: 'Back',
-          }}
-        />
-        
-        <Stack.Screen name="SavedCards" 
-        component={SavedCardsScreen} />
+      />
+      <Stack.Screen
+        name="SofaCleaning"
+        component={SofaCleaningScreen}
+        options={{
+          title: 'Sofa Cleaning',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen
+        name="CarpetCleaning"
+        component={CarpetCleaningScreen}
+        options={{
+          title: 'Carpet Cleaning',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen
+        name="Support"
+        component={SupportScreen}
+        options={{
+          title: 'Help & Support',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen 
+        name="SavedCards" 
+        component={SavedCardsScreen}
+        options={{
+          title: 'Saved Cards',
+          headerBackTitle: 'Back',
+        }}
+      />
     </Stack.Navigator>
   );
 }
