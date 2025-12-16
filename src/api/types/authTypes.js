@@ -1,0 +1,1 @@
+//TypeScript/PropTypes for auth

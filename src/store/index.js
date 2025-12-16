@@ -5,6 +5,7 @@ import authReducer from './slices/authSlice';
 
 export const store = configureStore({
   reducer: {
+    [baseApi.reducerPath]: baseApi.reducer,
     [apiSlice.reducerPath]: apiSlice.reducer,
     auth: authReducer,
   },
@@ -12,4 +13,6 @@ export const store = configureStore({
     getDefaultMiddleware().concat(apiSlice.middleware),
 });
 
+// Enable refetchOnFocus/refetchOnReconnect behaviors
 setupListeners(store.dispatch);
+export default store;

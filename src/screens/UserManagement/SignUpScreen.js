@@ -100,23 +100,69 @@ const SignUpScreen = ({ navigation }) => {
   };
 
   // Handle sign up
-  const handleSignUp = async () => {
-    if (!validateForm()) return;
+  // const handleSignUp = async () => {
+  //   if (!validateForm()) return;
 
-    setLoading(true);
+  //   setLoading(true);
+  //   try {
+  //     // Send OTP to email/mobile
+  //     setTimeout(() => {
+  //       setLoading(false);
+  //       setStep(2);
+  //       startTimer();
+  //     }, 1500);
+  //   } catch (error) {
+  //     setLoading(false);
+  //     Alert.alert('Error', 'Failed to send OTP. Please try again.');
+  //   }
+  // };
+const handleSignUp = async () => {
+    if (!validateForm()) return;
+    
     try {
-      // Send OTP to email/mobile
-      setTimeout(() => {
-        setLoading(false);
-        setStep(2);
-        startTimer();
-      }, 1500);
+      const response = await registerUser(formData).unwrap();
+      
+      if (response.success) {
+        if (response.data.requiresOtp) {
+          dispatch(setOtpRequired({
+            userId: response.data.userId,
+            otpSentTo: response.data.otpSentTo
+          }));
+          setStep(2);
+          startTimer();
+        } else {
+          // If no OTP required, login directly
+           dispatch(setCredentials(response.data));
+          navigation.replace('MainTabs');
+        }
+      }
     } catch (error) {
-      setLoading(false);
-      Alert.alert('Error', 'Failed to send OTP. Please try again.');
+      Alert.alert('Error', error?.data?.message || 'Registration failed. Please try again.');
     }
   };
-
+   // Update verifyOtp function:
+  const verifyOtpCode = async (otpCode) => {
+    if (otpCode.length !== 6) return;
+    
+    try {
+      const otpData = {
+        userId: formData.email, // or use the userId from registration response
+        otp: otpCode,
+        type: 'email', // or 'mobile'
+      };
+      
+      const response = await verifyOtp(otpData).unwrap();
+      
+      if (response.success) {
+        dispatch(setCredentials(response.data));
+        navigation.replace('MainTabs');
+      }
+    } catch (error) {
+       Alert.alert('Error', error?.data?.message || 'Invalid OTP. Please try again.');
+    }
+  };
+   // Update loading state:
+  //const loading = registerLoading || verifyLoading;
   // OTP Functions
   const startTimer = () => {
     const interval = setInterval(() => {

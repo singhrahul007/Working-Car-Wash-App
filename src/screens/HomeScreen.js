@@ -165,6 +165,80 @@ export default function HomeScreen() {
 
   // Action items for the grid
 
+// const actionItems = [
+//   {
+//     id: '1',
+//     title: 'Car Wash',
+//     subtitle: 'Starting at ₹299',
+//     icon: 'local-car-wash',
+//     color: '#2196F3', // Blue 500
+//     bgColor: '#E3F2FD', // Blue 50
+//     action: () => navigation.navigate('Booking', { vehicle: 'car' })
+//   },
+//   {
+//     id: '2',
+//     title: 'Bike Wash',
+//     subtitle: 'Starting at ₹149',
+//     icon: 'two-wheeler',
+//     color: '#4CAF50', // Green 500
+//     bgColor: '#E8F5E9', // Green 50
+//     action: () => navigation.navigate('Booking', { vehicle: 'bike' })
+//   },
+//   {
+//     id: '3',
+//     title: 'Sofa Cleaning',
+//     subtitle: 'Professional Sofa Wash',
+//     icon: 'weekend',
+//     color: '#795548', // Brown 500
+//     bgColor: '#EFEBE9', // Brown 50
+//     action: () => navigation.navigate('SofaCleaning')
+//   },
+//   {
+//     id: '4',
+//     title: 'Carpet Cleaning',
+//     subtitle: 'Carpet Wash & Care',
+//     icon: 'layers',
+//     color: '#607D8B', // Blue Grey 500
+//     bgColor: '#ECEFF1', // Blue Grey 50
+//     action: () => navigation.navigate('CarpetCleaning')
+//   },
+//   {
+//     id: '5',
+//     title: 'Installation/Repair',
+//     subtitle: 'Repair & Maintenance',
+//     icon: 'ac-unit',
+//     color: '#03A9F4', // Light Blue 500
+//     bgColor: '#E1F5FE', // Light Blue 50
+//     action: () => navigation.navigate('ACService')
+//   },
+//   {
+//     id: '6',
+//     title: 'Plumbing Services',
+//     subtitle: 'Repair & Maintenance',
+//     icon: 'plumbing',
+//     color: '#03A9F4', // Light Blue 500
+//     bgColor: '#E1F5FE', // Light Blue 50
+//     action: () => navigation.navigate('ACService')
+//   },
+//   {
+//     id: '7',
+//     title: 'Water Tank Cleaning',
+//     subtitle: 'Repair & Maintenance',
+//     icon: 'ac-unit',
+//     color: '#03A9F4', // Light Blue 500
+//     bgColor: '#E1F5FE', // Light Blue 50
+//     action: () => navigation.navigate('ACService')
+//   },
+//   {
+//     id: '8',
+//     title: 'Support',
+//     subtitle: 'Get Help',
+//     icon: 'help-outline',
+//     color: '#FF9800', // Orange 500
+//     bgColor: '#FFF3E0', // Orange 50
+//     action: () => navigation.navigate('Support')
+//   },
+// ];
 const actionItems = [
   {
     id: '1',
@@ -205,14 +279,32 @@ const actionItems = [
   {
     id: '5',
     title: 'AC Services',
-    subtitle: 'Repair & Maintenance',
+    subtitle: 'Installation & Repair',
     icon: 'ac-unit',
-    color: '#03A9F4', // Light Blue 500
-    bgColor: '#E1F5FE', // Light Blue 50
+    color: '#00BCD4', // Cyan 500
+    bgColor: '#E0F7FA', // Cyan 50
     action: () => navigation.navigate('ACService')
   },
   {
     id: '6',
+    title: 'Plumbing Services',
+    subtitle: 'Repair & Maintenance',
+    icon: 'plumbing',
+    color: '#FF5722', // Deep Orange 500
+    bgColor: '#FBE9E7', // Deep Orange 50
+    action: () => navigation.navigate('PlumbingService')
+  },
+  {
+    id: '7',
+    title: 'Water Tank Cleaning',
+    subtitle: 'Professional Cleaning',
+    icon: 'water-damage',
+    color: '#009688', // Teal 500
+    bgColor: '#E0F2F1', // Teal 50
+    action: () => navigation.navigate('WaterTankCleaning')
+  },
+  {
+    id: '8',
     title: 'Support',
     subtitle: 'Get Help',
     icon: 'help-outline',
