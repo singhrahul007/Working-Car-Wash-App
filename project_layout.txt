@@ -1,0 +1,149 @@
+--- Folder Layout ---
+[.expo]
+    ├── devices.json
+    ├── packager-info.json
+    ├── README.md
+    └── settings.json
+[.git] (...)
+.gitignore
+[.vscode] (...)
+[android]
+    ├── .gitignore
+    ├── [.gradle] (...)
+    ├── [app]
+        ├── [build] (...)
+        ├── debug.keystore
+        ├── proguard-rules.pro
+        └── [src]
+            ├── [debug] (...)
+            ├── [main]
+                ├── AndroidManifest.xml
+                ├── [java]
+                    └── [com]
+                        └── [anonymous]
+                            └── [carwashapp]
+                                ├── MainActivity.java
+                                └── MainApplication.java
+                └── [res]
+                    ├── [drawable]
+                        ├── rn_edit_text_material.xml
+                        └── splashscreen.xml
+                    ├── [mipmap-anydpi-v26]
+                        └── ic_launcher.xml
+                    ├── [mipmap-hdpi]
+                        ├── ic_launcher.png
+                        ├── ic_launcher_adaptive_back.png
+                        ├── ic_launcher_adaptive_fore.png
+                        └── ic_launcher_round.png
+                    ├── [mipmap-mdpi]
+                        ├── ic_launcher.png
+                        ├── ic_launcher_adaptive_back.png
+                        ├── ic_launcher_adaptive_fore.png
+                        └── ic_launcher_round.png
+                    ├── [mipmap-xhdpi]
+                        ├── ic_launcher.png
+                        ├── ic_launcher_adaptive_back.png
+                        ├── ic_launcher_adaptive_fore.png
+                        └── ic_launcher_round.png
+                    ├── [mipmap-xxhdpi]
+                        ├── ic_launcher.png
+                        ├── ic_launcher_adaptive_back.png
+                        ├── ic_launcher_adaptive_fore.png
+                        └── ic_launcher_round.png
+                    ├── [mipmap-xxxhdpi]
+                        ├── ic_launcher.png
+                        ├── ic_launcher_adaptive_back.png
+                        ├── ic_launcher_adaptive_fore.png
+                        └── ic_launcher_round.png
+                    ├── [values]
+                        ├── colors.xml
+                        ├── strings.xml
+                        └── styles.xml
+                    └── [values-night]
+                        └── colors.xml
+            └── [release] (...)
+    ├── [build] (...)
+    ├── [gradle]
+        └── [wrapper]
+            ├── gradle-wrapper.jar
+            └── gradle-wrapper.properties
+    ├── gradle.properties
+    ├── gradlew
+    ├── gradlew.bat
+App.js
+app.json
+[assets]
+    ├── adaptive-icon.png
+    ├── car-wash.png
+    ├── icon.png
+    └── splash.png
+create_icons.py
+index.js
+metro.config.js
+[node_modules] (...)
+package-lock.json
+package.json
+README.md
+[src]
+    ├── .eslintrc.js
+    ├── [api]
+        ├── [base]
+            ├── apiConfig.js
+            └── baseApi.js
+        ├── [interceptors]
+            ├── authInterceptor.js
+            └── errorInterceptor.js
+        ├── [services]
+            └── authService.js
+        └── [types]
+            ├── authTypes.js
+            └── userTypes.js
+    ├── [assets]
+    ├── babel.config.js
+    ├── [components]
+        └── [common]
+            ├── ErrorMessage.js
+            └── LoadingSpinner.js
+    ├── [contexts]
+        └── AuthContext.js
+    ├── jsconfig.json
+    ├── [navigation]
+        └── MainNavigator.js
+    ├── [screens]
+        ├── ACServiceScreen.js
+        ├── BookingScreen.js
+        ├── CameraScreen.js
+        ├── CarpetCleaningScreen.js
+        ├── CartScreen.js
+        ├── HomeScreen.js
+        ├── OffersScreen.js
+        ├── OrdersScreen.js
+        ├── OtpScreen.js
+        ├── ProductsScreen.js
+        ├── ProfileScreen.js
+        ├── SavedCardsScreen.js
+        ├── SofaCleaningScreen.js
+        ├── SplashScreen.js
+        ├── SupportScreen.js
+        └── [UserManagement]
+            ├── ForgotPasswordScreen.js
+            ├── GuestCheckoutScreen.js
+            ├── index.js
+            ├── LoginScreen.js
+            ├── OTPVerificationScreen.js
+            ├── SignUpScreen.js
+            ├── TwoFactorAuthScreen.js
+            └── WelcomeScreen.js
+    ├── [store]
+        ├── [hooks]
+            └── hooks.js
+        ├── index.js
+        └── [slices]
+            └── authSlice.js
+    ├── [styles]
+    └── [utils]
+        ├── api.js
+        ├── constants.js
+        ├── LocationService.js
+        ├── storage.js
+        └── validation.js

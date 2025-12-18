@@ -1,93 +1,31 @@
 import { baseApi } from '../base/baseApi';
 
-// Type definitions for request/response
-export const AuthTypes = {
-  // Registration types
-  RegisterRequest: {
-    fullName: '',
-    email: '',
-    mobile: '',
-    password: '',
-    confirmPassword: '',
-    marketingEmails: false,
-  },
-  
-  RegisterResponse: {
-    success: false,
-    message: '',
-    data: {
-      userId: '',
-      email: '',
-      mobile: '',
-      requiresOtp: false,
-      otpSentTo: '', // 'email' or 'mobile'
-    },
-  },
-  
-  // OTP types
-  OtpVerifyRequest: {
-    userId: '',
-    otp: '',
-    type: 'email', // 'email' or 'mobile'
-  },
-  
-  OtpVerifyResponse: {
-    success: false,
-    message: '',
-    data: {
-      token: '',
-      refreshToken: '',
-      user: {
-        id: '',
-        fullName: '',
-        email: '',
-        mobile: '',
-        isVerified: false,
-      },
-    },
-  },
-  
-  // Resend OTP
-  ResendOtpRequest: {
-    userId: '',
-    type: 'email', // 'email' or 'mobile'
-  },
-  
-  // Login types
-  LoginRequest: {
-    email: '',
-    password: '',
-  },
-  
-  LoginResponse: {
-    success: false,
-    message: '',
-    data: {
-      token: '',
-      refreshToken: '',
-      user: {
-        id: '',
-        fullName: '',
-        email: '',
-        mobile: '',
-        isVerified: false,
-      },
-    },
-  },
-};
+/**
+ * @typedef {Object} ApiResponse
+ * @property {boolean} success
+ * @property {string} message
+ * @property {Object} data
+ */
 
-// Auth API service
+/**
+ * Auth API Service (JavaScript + RTK Query)
+ */
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    // User Registration
+
+    /* =========================
+       REGISTER USER
+    ========================== */
     registerUser: builder.mutation({
       query: (userData) => ({
-        url: '/auth/register',
+        url: '/Auth/register',
         method: 'POST',
         body: userData,
       }),
-      transformResponse: (response) => {
-        // Transform response to match our app structure
+
+      transformResponse: (
+        /** @type {ApiResponse} */ response
+      ) => {
         return {
           success: response.success,
           message: response.message,
@@ -95,32 +33,28 @@ export const authApi = baseApi.injectEndpoints({
             userId: response.data?.userId || response.data?.id,
             email: response.data?.email,
             mobile: response.data?.mobile,
-            requiresOtp: response.data?.requiresOtp || true,
-            otpSentTo: response.data?.otpSentTo || 'mobile',
+            requiresOtp: response.data?.requiresOtp ?? true,
+            otpSentTo: response.data?.otpSentTo ?? 'mobile',
           },
         };
       },
+
       invalidatesTags: ['Auth'],
-      // Optimistic updates can be added here
-      onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
-        // Optimistic update logic if needed
-        // dispatch(authSlice.actions.setTempUser(arg));
-      },
     }),
 
-    // Verify OTP
+    /* =========================
+       VERIFY OTP
+    ========================== */
     verifyOtp: builder.mutation({
       query: (otpData) => ({
-        url: '/auth/verify-otp',
+        url: '/Auth/verify-otp',
         method: 'POST',
         body: otpData,
       }),
-      transformResponse: (response) => {
-        // Store tokens in AsyncStorage
-        if (response.data?.token) {
-          // TokenManager.storeTokens(response.data); // Will be called in authSlice
-        }
-        
+
+      transformResponse: (
+        /** @type {ApiResponse} */ response
+      ) => {
         return {
           success: response.success,
           message: response.message,
@@ -132,43 +66,52 @@ export const authApi = baseApi.injectEndpoints({
               fullName: response.data?.user?.fullName,
               email: response.data?.user?.email,
               mobile: response.data?.user?.mobile,
-              isVerified: response.data?.user?.isVerified || true,
+              isVerified: response.data?.user?.isVerified ?? true,
             },
           },
         };
       },
+
       invalidatesTags: ['Auth'],
     }),
 
-    // Resend OTP
+    /* =========================
+       RESEND OTP
+    ========================== */
     resendOtp: builder.mutation({
       query: (resendData) => ({
-        url: '/auth/resend-otp',
+        url: '/Auth/resend-otp',
         method: 'POST',
         body: resendData,
       }),
-      transformResponse: (response) => ({
-        success: response.success,
-        message: response.message,
-        data: {
-          otpSentTo: response.data?.otpSentTo,
-          nextResendIn: response.data?.nextResendIn, // seconds
-        },
-      }),
+
+      transformResponse: (
+        /** @type {ApiResponse} */ response
+      ) => {
+        return {
+          success: response.success,
+          message: response.message,
+          data: {
+            otpSentTo: response.data?.otpSentTo,
+            nextResendIn: response.data?.nextResendIn,
+          },
+        };
+      },
     }),
 
-    // Login User
+    /* =========================
+       LOGIN
+    ========================== */
     loginUser: builder.mutation({
       query: (credentials) => ({
-        url: '/auth/login',
+        url: '/Auth/login',
         method: 'POST',
         body: credentials,
       }),
-      transformResponse: (response) => {
-        if (response.data?.token) {
-          // TokenManager.storeTokens(response.data);
-        }
-        
+
+      transformResponse: (
+        /** @type {ApiResponse} */ response
+      ) => {
         return {
           success: response.success,
           message: response.message,
@@ -179,44 +122,60 @@ export const authApi = baseApi.injectEndpoints({
           },
         };
       },
+
       invalidatesTags: ['Auth'],
     }),
 
-    // Logout User
+    /* =========================
+       LOGOUT
+    ========================== */
     logoutUser: builder.mutation({
       query: () => ({
-        url: '/auth/logout',
+        url: '/Auth/logout',
         method: 'POST',
       }),
+
       invalidatesTags: ['Auth', 'User'],
     }),
 
-    // Refresh Token
+    /* =========================
+       REFRESH TOKEN
+    ========================== */
     refreshToken: builder.mutation({
       query: (refreshToken) => ({
-        url: '/auth/refresh-token',
+        url: '/Auth/refresh-token',
         method: 'POST',
         body: { refreshToken },
       }),
     }),
 
-    // Check Email/Mobile Availability
+    /* =========================
+       CHECK EMAIL / MOBILE
+    ========================== */
     checkAvailability: builder.query({
       query: ({ field, value }) => ({
-        url: `/auth/check-${field}`,
+        url: `/Auth/check-${field}`,
         method: 'GET',
         params: { [field]: value },
       }),
-      transformResponse: (response) => ({
-        available: response.available,
-        message: response.message,
-      }),
+
+      transformResponse: (
+        /** @type {ApiResponse} */ response
+      ) => {
+        return {
+          available: response.data?.available,
+          message: response.message,
+        };
+      },
     }),
   }),
+
   overrideExisting: false,
 });
 
-// Export hooks for usage in components
+/* =========================
+   EXPORT HOOKS
+========================== */
 export const {
   useRegisterUserMutation,
   useVerifyOtpMutation,
@@ -227,5 +186,7 @@ export const {
   useLazyCheckAvailabilityQuery,
 } = authApi;
 
-// Export endpoints for use in other parts of the app
+/* =========================
+   EXPORT ENDPOINTS
+========================== */
 export const authEndpoints = authApi.endpoints;

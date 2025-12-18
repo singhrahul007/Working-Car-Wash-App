@@ -1,19 +1,20 @@
 // # API endpoints, headers, etc.
 
 export const API_BASE_URL = 'https://localhost:64316/api';
+export const API_TIMEOUT = 30000;
 export const API_ENDPOINTS = {
   AUTH: {
-    REGISTER: '/auth/register',
-    LOGIN: '/auth/login',
-    VERIFY_OTP: '/auth/verify-otp',
-    RESEND_OTP: '/auth/resend-otp',
-    LOGOUT: '/auth/logout',
-    REFRESH_TOKEN: '/auth/refresh-token',
+    REGISTER: '/Auth/register',
+    LOGIN: '/Auth/login',
+    VERIFY_OTP: '/Auth/verify-otp',
+    RESEND_OTP: '/Auth/resend-otp',
+    LOGOUT: '/Auth/logout',
+    REFRESH_TOKEN: '/Auth/refresh-token',
   },
   USER: {
-    PROFILE: '/users/profile',
-    UPDATE_PROFILE: '/users/profile',
-    CHANGE_PASSWORD: '/users/change-password',
+    PROFILE: '/Users/profile',
+    UPDATE_PROFILE: '/Users/profile',
+    CHANGE_PASSWORD: '/Users/change-password',
   },
 };
 export const HTTP_METHODS = {
@@ -33,7 +34,6 @@ export const HTTP_STATUS = {
   INTERNAL_SERVER_ERROR: 500,
 };
 
-export const API_TIMEOUT = 30000; 
 
 export const API_CONFIG = {
   BASE_URL: __DEV__ 

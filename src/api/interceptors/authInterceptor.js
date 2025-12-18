@@ -1,6 +1,8 @@
 // Token injection
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { logout } from '../../store/slices/authSlice';
+import { logout, setCredentials } from '../../store/slices/authSlice';
+import { API_BASE_URL } from '../base/apiConfig';
+
 
 // Token management utilities
 export const TokenManager = {

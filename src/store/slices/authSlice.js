@@ -1,6 +1,7 @@
 // store/slices/authSlice.js
 import { createSlice } from '@reduxjs/toolkit';
-import { TokenManager } from '../../api/apiSlice';
+import { TokenManager } from '../../api/interceptors/authInterceptor';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Add missing utility functions
 const removeToken = async () => {

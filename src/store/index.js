@@ -1,18 +1,18 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
-import { apiSlice } from '../api/apiSlice';
+
 import authReducer from './slices/authSlice';
+import { baseApi } from '../api/base/baseApi';
 
 export const store = configureStore({
   reducer: {
-    [baseApi.reducerPath]: baseApi.reducer,
-    [apiSlice.reducerPath]: apiSlice.reducer,
     auth: authReducer,
+    [baseApi.reducerPath]: baseApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(apiSlice.middleware),
+    getDefaultMiddleware().concat(baseApi.middleware),
 });
 
-// Enable refetchOnFocus/refetchOnReconnect behaviors
 setupListeners(store.dispatch);
+
 export default store;
