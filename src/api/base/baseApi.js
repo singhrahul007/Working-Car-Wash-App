@@ -17,6 +17,16 @@ const baseQuery = fetchBaseQuery({
     headers.set('Content-Type', 'application/json');
     return headers;
   },
+   // ⬇️ Add this fetch options object (Android-specific)
+  // fetchFn: (url, options) => {
+  //   return fetch(url, {
+  //     ...options,
+  //     // This is insecure and for local development only
+  //     agent: new (require('https')).Agent({
+  //       rejectUnauthorized: false
+  //     })
+  //   });
+  //}
 });
 
 const baseQueryWithReauth = async (args, api, extraOptions) => {
