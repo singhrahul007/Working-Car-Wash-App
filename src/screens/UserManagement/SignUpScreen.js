@@ -64,16 +64,20 @@ const SignUpScreen = ({ navigation }) => {
 
     if (!fullName.trim()) return Alert.alert("Error", "Enter full name");
     if (!validateEmail(email)) return Alert.alert("Error", "Invalid email");
-    if (mobile.length !== 10)
+    if (mobile.length !== 10 || !validateMobileNumber(mobile)) {
       return Alert.alert("Error", "Invalid mobile number");
+    }
     if (password.length < 8) return Alert.alert("Error", "Password too short");
     if (password !== confirmPassword)
       return Alert.alert("Error", "Passwords do not match");
     if (!agreeToTerms) return Alert.alert("Error", "Accept Terms & Conditions");
-
+    
     return true;
   };
-
+  const validateMobileNumber = (mobile) => {
+    const mobileRegex = /^[6-9]\d{9}$/; // Indian mobile numbers
+    return mobileRegex.test(mobile);
+  }
   const handleSignUp = async () => {
     if (!validateForm()) return;
 
@@ -86,9 +90,16 @@ const SignUpScreen = ({ navigation }) => {
         fullName: formData.fullName,
         acceptTerms: formData.agreeToTerms,
       };
-      console.log("Form Data Submitted:", payload);
       const res = await registerUser(payload).unwrap();
       console.log("Registration Response:", res);
+       // 🚨 CRITICAL FIX: Check if success is false
+    if (!res.success) {
+      // Show the error message from API
+      Alert.alert("Registration Failed", res.message, [
+        { text: "OK", style: "default" }
+      ]);
+      return; 
+    }
       if (res.success && res.data.requiresOtp) {
         dispatch(
           setOtpRequired({
@@ -106,7 +117,7 @@ const SignUpScreen = ({ navigation }) => {
       console.log('REGISTER ERROR FULL:', err);
       console.log('REGISTER ERROR DATA:', err?.data);
       console.log('REGISTER ERROR STATUS:', err?.status);
-      Alert.alert("Error", err?.data?.message || "Registration failed");
+      Alert.alert("Error", err || "Registration failed");
     }
   };
 
