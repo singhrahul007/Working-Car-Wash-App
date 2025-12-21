@@ -134,7 +134,7 @@ export default function MainNavigator() {
         name="OTPVerification" 
         component={OTPVerificationScreen}
         options={{
-          headerShown: true,
+          headerShown: false,
           title: 'Verify OTP',
           headerBackTitle: 'Back',
           headerStyle: {

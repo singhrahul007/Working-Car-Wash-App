@@ -52,24 +52,48 @@ export const authApi = baseApi.injectEndpoints({
         body: otpData,
       }),
 
-      transformResponse: (
-        /** @type {ApiResponse} */ response
-      ) => {
-        return {
-          success: response.success,
-          message: response.message,
-          data: {
-            token: response.data?.token,
-            refreshToken: response.data?.refreshToken,
-            user: {
-              id: response.data?.user?.id,
-              fullName: response.data?.user?.fullName,
-              email: response.data?.user?.email,
-              mobile: response.data?.user?.mobile,
-              isVerified: response.data?.user?.isVerified ?? true,
-            },
-          },
-        };
+      transformResponse: ( /** @type {ApiResponse} */ response) => {
+        console.log("🔍 verify-otp transformResponse received:", response);
+    
+    return {
+      success: response.success,
+      message: response.message,
+      token: response.token,
+      refreshToken: response.refreshToken,
+      sessionId: response.sessionId,
+      expiresAt: response.expiresAt,
+      user: response.user,
+      requiresOTP: response.requiresOTP,
+      requires2FA: response.requires2FA,
+      tempToken: response.tempToken,
+      accessToken: response.accessToken || response.token, // Use token if accessToken is empty
+      accessTokenExpiry: response.accessTokenExpiry,
+      refreshTokenExpiry: response.refreshTokenExpiry,
+    };
+
+        // return {
+        //     success: response.success,
+        //     message: response.message,
+        //     token: response.data.token,
+        //     refreshToken: response.data.refreshToken,
+        //     sessionId: response.data.sessionId,
+        //     expiresAt: response.data.expiresAt,
+        //   user: {
+        //       id: response.data.user?.id,
+        //       email: response.data.user?.email,
+        //       mobileNumber: response.data.user?.mobileNumber,
+        //       fullName: response.data.user?.fullName,
+        //       profilePicture: response.data.user?.profilePicture,
+        //       isEmailVerified: response.data.user?.isEmailVerified,
+        //       isMobileVerified: response.data.user?.isMobileVerified,
+        //     },
+        //       requiresOTP: response.data.requiresOTP,
+        //       requires2FA: response.data.requires2FA,
+        //       tempToken: response.data.tempToken,
+        //       accessToken: response.data.accessToken,
+        //       accessTokenExpiry: response.data.accessTokenExpiry,
+        //       refreshTokenExpiry: response.data.refreshTokenExpiry,
+        // };
       },
 
       invalidatesTags: ['Auth'],
@@ -115,11 +139,17 @@ export const authApi = baseApi.injectEndpoints({
         return {
           success: response.success,
           message: response.message,
-          data: {
-            token: response.data?.token,
-            refreshToken: response.data?.refreshToken,
-            user: response.data?.user,
-          },
+          token : response.data?.token,
+          refreshToken : response.data?.refreshToken,
+          sessionId : response.data?.sessionId,
+          expiresAt : response.data?.expiresAt,
+          user : response.data?.user,
+          requiresOTP : response.data?.requiresOTP,
+          requires2FA : response.data?.requires2FA,
+          tempToken : response.data?.tempToken,
+          accessToken : response.data?.accessToken,
+          accessTokenExpiry : response.data?.accessTokenExpiry,
+          refreshTokenExpiry : response.data?.refreshTokenExpiry
         };
       },
 

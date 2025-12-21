@@ -1,7 +1,8 @@
 // store/slices/authSlice.js
-import { createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { TokenManager } from '../../api/interceptors/authInterceptor';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../utils/api';
 
 // Add missing utility functions
 const removeToken = async () => {
@@ -23,11 +24,17 @@ const removeUserData = async () => {
 
 const initialState = {
   user: null,
+  accessToken: null,
   token: null,
   refreshToken: null,
+  sessionId: null,
+  accessTokenExpiry: null,
+  refreshTokenExpiry: null,
+  isAuthenticated: false,
+  requiresOTP: false,
+  requires2FA: false,
   isLoading: false,
   error: null,
-  isAuthenticated: false,
   requiresOtp: false,
   otpUserId: null,
   otpSentTo: 'mobile',
@@ -39,12 +46,31 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action) => {
-      const { token, refreshToken, user } = action.payload;
-      state.token = token;
+       const {
+        user,
+        accessToken,
+        refreshToken,
+        sessionId,
+        accessTokenExpiry,
+        refreshTokenExpiry,
+        requiresOTP,
+        requires2FA,
+      } = action.payload;
+      state.user = user;
+      state.accessToken = accessToken;
+      state.refreshToken = refreshToken;
+      state.sessionId = sessionId;
+      state.accessTokenExpiry = accessTokenExpiry;
+      state.refreshTokenExpiry = refreshTokenExpiry;
+      state.isAuthenticated = true;
+      state.requiresOTP = requiresOTP || false;
+      state.requires2FA = requires2FA || false;
+      //state.token = token;
       state.refreshToken = refreshToken;
       state.user = user;
       state.isAuthenticated = true;
       state.error = null;
+      state.isLoading = false;
     },
     
     setRegistrationData: (state, action) => {
@@ -78,9 +104,18 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    
+    updateTokens: (state, action) => {
+      state.accessToken = action.payload.accessToken;
+      state.refreshToken = action.payload.refreshToken;
+      state.accessTokenExpiry = action.payload.accessTokenExpiry;
+      state.refreshTokenExpiry = action.payload.refreshTokenExpiry;
+    },
     logout: (state) => {
       state.user = null;
+      state.accessToken = null;
+      state.refreshToken = null;
+      state.sessionId = null;
+      state.isAuthenticated = false;
       state.token = null;
       state.refreshToken = null;
       state.isAuthenticated = false;
@@ -96,6 +131,49 @@ const authSlice = createSlice({
   },
 });
 
+// Add this to your auth slice
+export const fetchProfile = createAsyncThunk(
+  'Auth/fetchProfile',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/Auth/profile');
+      return response.data.user;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+// Thunk to load auth data from AsyncStorage on app start
+export const loadAuthDataFromStorage = () => async (dispatch) => {
+  try {
+    const authData = await TokenManager.getAuthData();
+    
+    if (authData && authData.accessToken) {
+      // Check if token is expired
+      const expiryDate = new Date(authData.accessTokenExpiry);
+      const now = new Date();
+      if (expiryDate > now) {
+        // Token is valid, set credentials
+        dispatch(setCredentials(authData));
+      } else if (authData.refreshToken) {
+        // Token expired but has refresh token
+        // Optionally try to refresh here or let interceptor handle it
+        dispatch(setCredentials(authData));
+      } else {
+        // Token expired and no refresh token
+        await TokenManager.clearAuthData();
+        dispatch(logout());
+      }
+    } else {
+      dispatch(logout());
+    }
+    } catch (error) {
+    console.error('Error loading auth data:', error);
+    dispatch(logout());
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
 export const {
   setCredentials,
   setRegistrationData,
@@ -106,6 +184,7 @@ export const {
   setError,
   clearError,
   logout,
+  updateTokens 
 } = authSlice.actions;
 
 export default authSlice.reducer;

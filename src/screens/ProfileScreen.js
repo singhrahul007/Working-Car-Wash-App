@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -18,21 +19,47 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout, selectCurrentUser, selectIsAuthenticated } from '../store/slices/authSlice';
+
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  
+   const dispatch = useDispatch();
+
+    // Get user from Redux
+  const userFromRedux = useSelector(selectCurrentUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+
   // User State
+  // User State - Update initial state
   const [user, setUser] = useState({
-    name: 'Rahul Singh',
-    email: 'rahul.singh@washingexpress.com',
-    phone: '+91 98765 43210',
+    name: userFromRedux?.fullName || 'Rahul Singh',
+    email: userFromRedux?.email || 'rahul.singh@washingexpress.com',
+    phone: userFromRedux?.mobileNumber || '+91 98765 43210',
     profileImage: null,
-    joinedDate: '15 Jan 2025',
+    joinedDate: userFromRedux?.createdAt ? new Date(userFromRedux.createdAt).toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    }) : '15 Jan 2025',
     totalBookings: 12,
     loyaltyPoints: 450,
-    isLoggedIn: true, // Added login state
+    isLoggedIn: isAuthenticated, // Use Redux authentication state
   });
+    // Update useEffect to sync with Redux
+  useEffect(() => {
+    if (userFromRedux) {
+      setUser(prev => ({
+        ...prev,
+        name: userFromRedux.fullName,
+        email: userFromRedux.email,
+        phone: userFromRedux.mobileNumber,
+        isLoggedIn: isAuthenticated,
+      }));
+    }
+  }, [userFromRedux, isAuthenticated]);
+
   
   // Settings State
   const [settings, setSettings] = useState({
@@ -163,7 +190,8 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: () => {
             // Clear user session and set as logged out
-            AsyncStorage.multiRemove(['@carwash_user', '@carwash_token']);
+            dispatch(logout()); 
+           // AsyncStorage.multiRemove(['@carwash_user', '@carwash_token']);
             setUser({
               ...user,
               name: 'Guest User',

@@ -14,15 +14,22 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
+import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import * as Facebook from 'expo-auth-session/providers/facebook';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { useDispatch } from 'react-redux';
+import { setCredentials, setOtpRequired } from '../../store/slices/authSlice';
+import { useLoginUserMutation } from '../../api/services/authService';
+import { saveAuthData } from '../../utils/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation,route }) => {
+  const dispatch = useDispatch();
+  const [loginUser, { isLoading }] = useLoginUserMutation();
   const [loginType, setLoginType] = useState('mobile'); // 'mobile' or 'email'
   const [mobileNumber, setMobileNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -215,68 +222,236 @@ const LoginScreen = ({ navigation }) => {
 
   const sendOTP = async (type, value) => {
     setLoading(true);
+    // try {
+    //   // Simulate API call to send OTP
+    //   // setTimeout(() => {
+    //   //   setLoading(false);
+    //   //   Alert.alert(
+    //   //     'OTP Sent',
+    //   //     `OTP has been sent to ${type === 'mobile' ? 'mobile number' : 'email'}: ${value}`,
+    //   //     [
+    //   //       {
+    //   //         text: 'Continue',
+    //   //         onPress: () => navigation.navigate('OTPVerification', {
+    //   //           type: type,
+    //   //           value: value,
+    //   //           flow: 'login',
+    //   //         })
+    //   //       }
+    //   //     ]
+    //   //   );
+    //   // }, 1500);
+    // } catch (error) {
+
+      
+    //   setLoading(false);
+    //   Alert.alert('Error', 'Failed to send OTP. Please try again.');
+    // }
     try {
-      // Simulate API call to send OTP
-      setTimeout(() => {
-        setLoading(false);
-        Alert.alert(
-          'OTP Sent',
-          `OTP has been sent to ${type === 'mobile' ? 'mobile number' : 'email'}: ${value}`,
-          [
-            {
-              text: 'Continue',
-              onPress: () => navigation.navigate('OTPVerification', {
-                type: type,
-                value: value,
-                flow: 'login',
-              })
-            }
-          ]
-        );
-      }, 1500);
+      const payload = {
+        loginType: type,
+        mobileNumber: value,
+        rememberMe: false,
+        deviceId: "react-native-device",
+        userAgent: "ReactNative",
+        ipAddress: "192.168.1.3",
+      };
+        console.log("Login User Mobile Number: >", mobileNumber);
+        console.log("Mobile Login Payload:", payload);
+        const res = await loginUser(payload).unwrap();
+        console.log("Mobile Login Response:", JSON.stringify(res, null, 2));
+    
+      if (!res.success) {
+        Alert.alert("Error", res.message);
+        return;
+      }
+      // Check if response has requiresOTP at root level or in data
+
+      if (res.requiresOTP) {
+          // Store the mobile number in a variable to ensure it's not lost
+      const userMobileNumber = mobileNumber; // Capture it before navigation
+       await AsyncStorage.setItem('@login_mobile_Number', userMobileNumber);
+       console.log("Stored mobile number for OTP flow:", userMobileNumber);
+         console.log("✅ requiresOTP is TRUE, navigating to OTP screen...");
+         console.log("Navigation params:", {
+          type: 'mobile',
+          value: mobileNumber,
+          flow: 'login',
+          tempToken: res.tempToken,
+        });
+        dispatch(setOtpRequired({
+          userId: res.user?.id,
+          otpSentTo: 'mobile',
+          tempToken: res.tempToken,
+        }));
+        console.log("✅ About to navigate to OTPVerification");
+          console.log("Navigation params:", {
+            type: 'mobile',
+            value: mobileNumber,
+            flow: 'login',
+            tempToken: res.tempToken,
+          });
+         await new Promise(resolve => setTimeout(resolve, 100)); // Ensure state is updated
+        // navigation.replace('OTPVerification', {
+        //   type: 'mobile',
+        //   value: userMobileNumber,
+        //   flow: 'login',
+        //   tempToken: res.tempToken,
+        // });
+       
+        
+          
+      }
+       const navigationParams = {
+          type: type,
+          value: value,
+          flow: 'login',
+          tempToken: res.tempToken,
+        };
+         console.log("🧭 Navigation params:", navigationParams);
+      navigation.navigate('OTPVerification', navigationParams);
+    //   Alert.alert('Success', 'OTP Sent', [{
+    //   text: 'OK',
+    //   onPress: () => navigation.navigate('OTPVerification')
+    // }]);
     } catch (error) {
+      console.log('OTP Send Error:', error);
+      
+      const errorMessage = error?.data?.message || 
+                          "Failed to send OTP. Please try again.";
+      
+      Alert.alert('Error', errorMessage);
+    } finally {
       setLoading(false);
-      Alert.alert('Error', 'Failed to send OTP. Please try again.');
     }
   };
+  
 
   const handleEmailLogin = async () => {
+     if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+    
+    if (!validateEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
     setLoading(true);
     try {
-      // For testing - accept any email/password
-      setTimeout(() => {
-        setLoading(false);
-        
-        // Test credentials for demo
-        const testEmail = 'test@example.com';
-        const testPassword = 'password123';
-        
-        if (email === testEmail && password === testPassword) {
-          // Check if 2FA is enabled (mock for testing)
-          const has2FA = false; // Change to true to test 2FA flow
-          
-          if (has2FA) {
-            navigation.navigate('TwoFactorAuth');
-          } else {
-            Alert.alert(
-              'Login Successful',
-              'You have successfully logged in!',
-              [
-                {
-                  text: 'Continue',
-                  onPress: () => navigation.replace('MainTabs')
-                }
-              ]
-            );
-          }
-        } else {
-          Alert.alert('Login Failed', 'Invalid email or password. Try:\nEmail: test@example.com\nPassword: password123');
-        }
-      }, 1500);
-    } catch (error) {
-      setLoading(false);
-      Alert.alert('Error', 'Invalid email or password');
+      const payload = {
+        loginType: "email",
+        email: email,
+        mobileNumber: "",
+        password: password,
+        rememberMe: rememberMe,
+        deviceId: "react-native-device",
+        userAgent: "ReactNative",
+        ipAddress: "192.168.1.3",
+      };
+    console.log("Email Login Payload:", payload);
+    const res = await loginUser(payload).unwrap();
+    console.log("Email Login Response:", res);
+    
+    if (!res.success) {
+      Alert.alert("Login Failed", res.message);
+      return;
     }
+    // Check response for different authentication flows
+    if (res.requiresOTP) {
+      // Navigate to OTP verification
+      console.log("✅ Requires OTP, navigating to OTP screen...");
+      
+      dispatch(setOtpRequired({
+        userId: res.user?.id,
+        otpSentTo: 'email',
+        tempToken: res.tempToken,
+      }));
+      
+      navigation.navigate('OTPVerification', {
+        type: 'email',
+        value: email,
+        flow: 'login',
+        tempToken: res.tempToken,
+      });
+    } else if (res.requires2FA) {
+      // Navigate to 2FA verification
+      console.log("✅ Requires 2FA, navigating to 2FA screen...");
+      
+      navigation.navigate('TwoFactorAuth', {
+        userId: res.user?.id,
+        tempToken: res.tempToken,
+      });
+    } else {
+      // Direct login successful
+      console.log("✅ Direct login successful");
+      
+      const authState = {
+        user: res.user,
+        accessToken: res.accessToken,
+        refreshToken: res.refreshToken,
+        sessionId: res.sessionId,
+        accessTokenExpiry: res.accessTokenExpiry,
+        refreshTokenExpiry: res.refreshTokenExpiry,
+        isAuthenticated: true,
+        requiresOTP: false,
+        requires2FA: false,
+        token: res.accessToken,
+      };
+      
+      dispatch(setCredentials(authState));
+      await saveAuthData(authState);
+      
+      // Navigate to main app
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' }],
+      });
+      
+      Alert.alert('Success', 'Login successful!');
+    }
+      // For testing - accept any email/password
+      // setTimeout(() => {
+      //   setLoading(false);
+        
+      //   // Test credentials for demo
+      //   const testEmail = 'test@example.com';
+      //   const testPassword = 'password123';
+        
+      //   if (email === testEmail && password === testPassword) {
+      //     // Check if 2FA is enabled (mock for testing)
+      //     const has2FA = false; // Change to true to test 2FA flow
+          
+      //     if (has2FA) {
+      //       navigation.navigate('TwoFactorAuth');
+      //     } else {
+      //       Alert.alert(
+      //         'Login Successful',
+      //         'You have successfully logged in!',
+      //         [
+      //           {
+      //             text: 'Continue',
+      //             onPress: () => navigation.replace('MainTabs')
+      //           }
+      //         ]
+      //       );
+      //     }
+      //   } else {
+      //     Alert.alert('Login Failed', 'Invalid email or password. Try:\nEmail: test@example.com\nPassword: password123');
+      //   }
+      // }, 1500);
+    } catch (error) {
+       console.log('Login Error:', error);
+        const errorMessage = error?.data?.message || 
+                          error?.error?.data?.message || 
+                          error?.message || 
+                          "Login failed. Please try again.";
+      setLoading(false);
+      Alert.alert('Login Error', errorMessage);
+    }finally {
+      setLoading(false);
+    }
+  
   };
 
   const validateEmail = (email) => {
@@ -392,7 +567,7 @@ const LoginScreen = ({ navigation }) => {
                     autoFocus
                   />
                 </View>
-                <Text style={styles.hintText}>For testing: Enter any 10-digit number</Text>
+                {/* <Text style={styles.hintText}>For testing: Enter any 10-digit number</Text> */}
               </View>
             ) : (
               <>

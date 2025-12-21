@@ -50,3 +50,26 @@ export const removeUserData = async () => {
     console.error('Error removing user data:', error);
   }
 };
+export const saveAuthData = async (authData) => {
+  try {
+    await AsyncStorage.setItem('authData', JSON.stringify(authData));
+  } catch (error) {
+    console.error('Error saving auth data:', error);
+  }
+};
+export const loadAuthData = async () => {
+  try {
+    const authData = await AsyncStorage.getItem('authData');
+    return authData ? JSON.parse(authData) : null;
+  } catch (error) {
+    console.error('Error loading auth data:', error);
+    return null;
+  }
+};
+export const clearAuthData = async () => {
+  try {
+    await AsyncStorage.removeItem('authData');
+  } catch (error) {
+    console.error('Error clearing auth data:', error);
+  }
+};

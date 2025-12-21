@@ -14,16 +14,65 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useDispatch } from 'react-redux';
+import { useVerifyOtpMutation } from '../../api/services/authService';
+import { setCredentials } from '../../store/slices/authSlice';
+import { saveAuthData } from '../../utils/storage';
 
 const OTPVerificationScreen = ({ navigation, route }) => {
-  const { type, value, flow = 'signup' } = route.params || {};
-  
+  const {  
+    // type, 
+    // value, 
+    // flow, 
+    // tempToken,
+    phoneNumber,   // Alternative name
+    mobile,        // Alternative name
+    email,         // Alternative name
+    phone,         // Alternative name
+    //contactValue,  // Alternative name
+    identifier   } = route.params || {};
+    const routeParams = route.params || {};
+    const type = routeParams.type || "mobile";
+    const value = routeParams.value || "";
+    const flow = routeParams.flow || "login";
+    const tempToken = routeParams.tempToken;
+    const contactValue = routeParams.value || 
+                      routeParams.phoneNumber || 
+                      routeParams.mobile || 
+                      routeParams.phone || 
+                      routeParams.email || 
+                      routeParams.contactValue || 
+                      routeParams.identifier;
+    useEffect(() => {
+    console.log("🎯 OTPVerificationScreen mounted");
+    console.log("📦 Full route params:", JSON.stringify(route.params, null, 2));
+    console.log("📱 Contact type:", type);
+    console.log("📱 Contact value:", contactValue);
+    console.log("🔄 Flow:", flow);
+    console.log("🎫 Temp token:", tempToken ? "Present" : "Missing");
+    
+    // Validate required params
+    if (!contactValue) {
+      console.error("❌ ERROR: No contact value received!");
+      Alert.alert(
+        'Error',
+        'Contact information missing. Please try again.',
+        [{ text: 'Go Back', onPress: () => navigation.goBack() }]
+      );
+    }
+  }, []);
+  const dispatch = useDispatch();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
+  
   const otpRefs = useRef([]);
-
+  const [verifyOtp,{isLoading}] = useVerifyOtpMutation();
+  useEffect(() => {
+  console.log("🎯 OTPVerificationScreen mounted");
+  console.log("Route params:", route.params);
+}, []);
   useEffect(() => {
     startTimer();
   }, []);
@@ -49,7 +98,7 @@ const OTPVerificationScreen = ({ navigation, route }) => {
     setOtp(newOtp);
 
     if (value !== '' && index < 5) {
-      otpRefs.current[index + 1].focus();
+      otpRefs.current[index + 1]?.focus();
     }
 
     if (newOtp.every((digit) => digit !== '')) {
@@ -81,12 +130,60 @@ const OTPVerificationScreen = ({ navigation, route }) => {
 
   const handleVerifyOTP = async (otpCode) => {
     if (otpCode.length !== 6) return;
-
+     if (otpCode.length !== 6) {
+      Alert.alert('Error', 'Please enter the 6-digit OTP');
+      return;
+    }
     setLoading(true);
+      const storedMobile = await AsyncStorage.getItem('@login_mobile_Number');
+       const payload = {
+        type: type || "mobile", // Default to mobile if not provided
+        value: value,
+        otp: otpCode,
+        flow: flow || "login"
+      };
     try {
-      const isValid = await verifyOTP(otpCode);
-      
-      if (isValid) {
+      console.log("📤 Sending OTP verification payload:", payload);
+      const response = await verifyOtp(payload).unwrap();
+    
+     
+       if (!response.success) {
+        Alert.alert('Error', response.message || 'Invalid OTP');
+        setOtp(['', '', '', '', '', '']); // Clear OTP inputs
+        otpRefs.current[0]?.focus(); // Focus first input
+        return;
+      }
+   console.log("✅ OTP Verification Response:", response);
+        // OTP verified successfully
+      const authState = {
+        user: response.user,
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        sessionId: response.sessionId,
+        accessTokenExpiry: response.accessTokenExpiry,
+        refreshTokenExpiry: response.refreshTokenExpiry,
+        isAuthenticated: true,
+        requiresOTP: false,
+        requires2FA: response.requires2FA,
+        token: response.token || response.accessToken,
+      };
+
+      dispatch(setCredentials(authState));
+      await saveAuthData(authState);
+        // Navigate based on flow
+      if (response.requires2FA) {
+        navigation.navigate('TwoFactorAuth', {
+          userId: response.user?.id,
+          tempToken: response.tempToken,
+        });
+      } else {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        });
+        Alert.alert('Success', 'Verification successful!');
+      }
+      if (response) {
         // Mock user data based on flow
         let userData = {};
         
@@ -137,8 +234,23 @@ const OTPVerificationScreen = ({ navigation, route }) => {
         Alert.alert('Error', 'Invalid OTP. Please try again.');
       }
     } catch (error) {
-      console.error('OTP verification error:', error);
-      Alert.alert('Error', 'Failed to verify OTP. Please try again.');
+       console.error('❌ OTP verification error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      // Handle different error types
+      if (error.status === 400) {
+        Alert.alert('Error', 'Invalid OTP or expired. Please try again.');
+      } else if (error.status === 401) {
+        Alert.alert('Error', 'Unauthorized. Please check your credentials.');
+      } else if (error.data?.message) {
+        Alert.alert('Error', error.data.message);
+      } else if (error.error) {
+        Alert.alert('Error', error.error);
+      } else {
+        Alert.alert('Error', 'Failed to verify OTP. Please try again.');
+      }
+        setOtp(['', '', '', '', '', '']);
+        otpRefs.current[0]?.focus();
     } finally {
       setLoading(false);
     }
@@ -164,7 +276,17 @@ const OTPVerificationScreen = ({ navigation, route }) => {
     }
     return value;
   };
-
+  const handleResendOtp = () => {
+    if (!canResend) return;
+    
+    // Call your resend OTP API here
+    Alert.alert('OTP Resent', 'New OTP has been sent to your ' + (type === 'mobile' ? 'mobile number' : 'email'));
+    setCanResend(false);
+    setTimer(60);
+    startTimer();
+    setOtp(['', '', '', '', '', '']);
+    otpRefs.current[0]?.focus();
+  };
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -197,7 +319,11 @@ const OTPVerificationScreen = ({ navigation, route }) => {
               {otp.map((digit, index) => (
                 <TextInput
                   key={index}
-                  ref={(ref) => (otpRefs.current[index] = ref)}
+                  ref={(ref) => {
+                    if (ref) {
+                      otpRefs.current[index] = ref;
+                    }
+                  }}
                   style={[styles.otpInput, digit !== '' && styles.otpInputFilled]}
                   value={digit}
                   onChangeText={(value) => handleOtpChange(value, index)}
@@ -210,6 +336,9 @@ const OTPVerificationScreen = ({ navigation, route }) => {
 
             {/* Timer/Resend */}
             <View style={styles.timerContainer}>
+              <Text style={styles.timerText}>
+                {canResend ? 'Didn\'t receive OTP?' : `Resend OTP in ${timer}s`}
+              </Text>
               {canResend ? (
                 <TouchableOpacity onPress={resendOtp}>
                   <Text style={styles.resendText}>Resend OTP</Text>

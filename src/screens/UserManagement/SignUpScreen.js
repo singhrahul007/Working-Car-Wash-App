@@ -21,6 +21,7 @@ import {
   useRegisterUserMutation,
   useVerifyOtpMutation,
 } from "../../api/services/authService";
+import { saveAuthData } from "../../utils/storage";
 
 const SignUpScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -90,9 +91,34 @@ const SignUpScreen = ({ navigation }) => {
         fullName: formData.fullName,
         acceptTerms: formData.agreeToTerms,
       };
+      console.log("Registration Payload:", payload);
       const res = await registerUser(payload).unwrap();
       console.log("Registration Response:", res);
-       // 🚨 CRITICAL FIX: Check if success is false
+         // ✅ LOG THE RESPONSE TO SEE ACTUAL STRUCTURE
+      console.log("Response structure check:");
+      console.log("Has user property?", 'user' in res);
+      console.log("Has data property?", 'data' in res);
+      console.log("Full response keys:", Object.keys(res));
+       // 🚨  Check if success is false
+         const authState = {
+          user: res.data.user,
+          accessToken: res.data.accessToken,
+          refreshToken: res.data.refreshToken,
+          sessionId: res.data.sessionId,
+          accessTokenExpiry: res.data.accessTokenExpiry,
+          refreshTokenExpiry: res.data.refreshTokenExpiry,
+          isAuthenticated: true,
+          requiresOTP: res.data.requiresOTP,
+          requires2FA: res.data.requires2FA,
+          token: res.data.accessToken,
+        };
+  
+    // Dispatch to Redux store
+    dispatch(setCredentials(authState));
+    // ✅ PERSIST TO ASYNC STORAGE
+    await saveAuthData(authState);
+       // ✅ NAVIGATE TO MAIN APP
+    navigation.replace("MainTabs");
     if (!res.success) {
       // Show the error message from API
       Alert.alert("Registration Failed", res.message, [
@@ -100,19 +126,25 @@ const SignUpScreen = ({ navigation }) => {
       ]);
       return; 
     }
-      if (res.success && res.data.requiresOtp) {
-        dispatch(
-          setOtpRequired({
-            userId: res.data.userId,
-            otpSentTo: res.data.otpSentTo,
-          })
-        );
-        setStep(2);
-        startTimer();
-      } else {
-        dispatch(setCredentials(res.data));
-        navigation.replace("MainTabs");
-      }
+   
+     // ✅ STORE TOKENS AND USER DATA
+    // Create a proper auth state object from the response
+  
+    // Disabling OTP for now
+    const SKIP_OTP = true; // Set to false to enable OTP
+    // if (!SKIP_OTP && res.success && res.data.requiresOtp) {
+    //   dispatch(
+    //     setOtpRequired({
+    //       userId: res.data.userId,
+    //       otpSentTo: res.data.otpSentTo,
+    //     })
+    //   );
+    //   setStep(2);
+    //   startTimer();
+    // } else {
+    //   dispatch(setCredentials(res.data));
+    //   navigation.replace("MainTabs");
+    // }
     } catch (err) {
       console.log('REGISTER ERROR FULL:', err);
       console.log('REGISTER ERROR DATA:', err?.data);
@@ -129,7 +161,7 @@ const SignUpScreen = ({ navigation }) => {
       }).unwrap();
 
       if (res.success) {
-        dispatch(setCredentials(res.data));
+        dispatch(setCredentials(res));
         navigation.replace("MainTabs");
       }
     } catch {

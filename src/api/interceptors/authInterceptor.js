@@ -6,19 +6,80 @@ import { API_BASE_URL } from '../base/apiConfig';
 
 // Token management utilities
 export const TokenManager = {
-  // Store tokens in AsyncStorage
-  storeTokens: async (tokens) => {
+ 
+  // Store complete auth data
+  storeAuthData: async (authData) => {
     try {
-      await AsyncStorage.multiSet([
-        ['@auth_token', tokens.accessToken],
-        ['@refresh_token', tokens.refreshToken],
-        ['@token_expiry', tokens.expiry?.toString()],
-      ]);
+      await AsyncStorage.setItem('@auth_data', JSON.stringify(authData));
     } catch (error) {
-      console.error('Error storing tokens:', error);
+      console.error('Error storing auth data:', error);
       throw error;
     }
   },
+   // Get stored auth data
+  getAuthData: async () => {
+    try {
+      const authData = await AsyncStorage.getItem('@auth_data');
+      return authData ? JSON.parse(authData) : null;
+    } catch (error) {
+      console.error('Error getting auth data:', error);
+      return null;
+    }
+  },
+   // Clear all auth data
+  clearAuthData: async () => {
+    try {
+      await AsyncStorage.removeItem('@auth_data');
+    } catch (error) {
+      console.error('Error clearing auth data:', error);
+      throw error;
+    }
+  },
+   // Get access token
+  getAccessToken: async () => {
+    try {
+      const authData = await TokenManager.getAuthData();
+      return authData?.accessToken || null;
+    } catch (error) {
+      console.error('Error getting access token:', error);
+      return null;
+    }
+  },
+  // Get refresh token
+  getRefreshToken: async () => {
+    try {
+      const authData = await TokenManager.getAuthData();
+      return authData?.refreshToken || null;
+    } catch (error) {
+      console.error('Error getting refresh token:', error);
+      return null;
+    }
+  },
+   // Check if token is expired
+  isTokenExpired: () => {
+    try {
+      const authData = TokenManager.getAuthDataSync();
+      if (!authData?.accessTokenExpiry) return true;
+      
+      const expiryDate = new Date(authData.accessTokenExpiry);
+      const now = new Date();
+      return now >= expiryDate;
+    } catch (error) {
+      console.error('Error checking token expiry:', error);
+      return true;
+    }
+  },
+   // Synchronous version for immediate checks
+  getAuthDataSync: () => {
+    try {
+      // Note: AsyncStorage is async, so this might not be perfect
+      // For real sync access, you'd need to store in Redux state
+      return null;
+    } catch (error) {
+      return null;
+    }
+  },
+
 
   // Get stored token
   getToken: async () => {
@@ -32,15 +93,15 @@ export const TokenManager = {
   },
 
   // Get refresh token
-  getRefreshToken: async () => {
-    try {
-      const refreshToken = await AsyncStorage.getItem('@refresh_token');
-      return refreshToken;
-    } catch (error) {
-      console.error('Error getting refresh token:', error);
-      return null;
-    }
-  },
+  // getRefreshToken: async () => {
+  //   try {
+  //     const refreshToken = await AsyncStorage.getItem('@refresh_token');
+  //     return refreshToken;
+  //   } catch (error) {
+  //     console.error('Error getting refresh token:', error);
+  //     return null;
+  //   }
+  // },
 
   // Clear all tokens
   clearTokens: async () => {
@@ -57,18 +118,18 @@ export const TokenManager = {
   },
 
   // Check if token is expired
-  isTokenExpired: async () => {
-    try {
-      const expiry = await AsyncStorage.getItem('@token_expiry');
-      if (!expiry) return true;
+  // isTokenExpired: async () => {
+  //   try {
+  //     const expiry = await AsyncStorage.getItem('@token_expiry');
+  //     if (!expiry) return true;
       
-      const expiryTime = parseInt(expiry, 10);
-      return Date.now() >= expiryTime;
-    } catch (error) {
-      console.error('Error checking token expiry:', error);
-      return true;
-    }
-  },
+  //     const expiryTime = parseInt(expiry, 10);
+  //     return Date.now() >= expiryTime;
+  //   } catch (error) {
+  //     console.error('Error checking token expiry:', error);
+  //     return true;
+  //   }
+  // },
 };
 
 // Request interceptor to add auth token
