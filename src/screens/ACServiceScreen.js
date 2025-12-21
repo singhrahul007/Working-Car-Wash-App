@@ -13,10 +13,17 @@ import {
   Modal
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Conditional imports to avoid TypeScript errors
+let DateTimePicker;
+let MaterialIcons;
+
+if (Platform.OS !== 'web') {
+  DateTimePicker = require('@react-native-community/datetimepicker').default;
+  MaterialIcons = require('react-native-vector-icons/MaterialIcons').default;
+}
 
 export default function ACServiceScreen() {
   const navigation = useNavigation();
@@ -37,22 +44,216 @@ export default function ACServiceScreen() {
   const [currentPickerValue, setCurrentPickerValue] = useState(new Date());
   const [formattedDate, setFormattedDate] = useState('Today');
   const [formattedTime, setFormattedTime] = useState('3:00 PM');
+  const [acCapacity, setAcCapacity] = useState('');
+  const [usageType, setUsageType] = useState('');
 
   // AC Services
-  const services = [
-    { id: 1, name: 'AC General Service', price: 599, duration: '1.5 hours', includes: 'Cleaning, Gas Check, Filter Wash' },
-    { id: 2, name: 'AC Deep Cleaning', price: 899, duration: '2 hours', includes: 'Complete Unit Cleaning, Coil Cleaning' },
-    { id: 3, name: 'AC Gas Charging', price: 1299, duration: '2 hours', includes: 'Gas Refill, Pressure Check' },
-    { id: 4, name: 'AC Repair & Troubleshooting', price: 399, duration: '1 hour', includes: 'Diagnosis, Minor Repairs' },
-    { id: 5, name: 'AC Installation', price: 1499, duration: '3 hours', includes: 'New AC Setup, Testing' },
-    { id: 6, name: 'AC Uninstallation', price: 699, duration: '1.5 hours', includes: 'Safe Removal, Packing' },
-    { id: 7, name: 'Annual Maintenance Contract', price: 2999, duration: 'Yearly', includes: '4 Services in 1 Year' },
-    { id: 8, name: 'Water Leakage Repair', price: 499, duration: '1 hour', includes: 'Drainage Cleaning, Pipe Repair' },
-  ];
+const services = [
+  {
+    id: 1,
+    name: 'AC General Service',
+    price: 599,
+    duration: '1.5 hours',
+    category: 'Maintenance',
+    includes: `
+• Air filter cleaning
+• Indoor unit basic cleaning
+• Outdoor unit surface cleaning
+• Drain pipe flushing
+• Gas pressure check
+• Performance test after service
+`
+  },
+  {
+    id: 2,
+    name: 'AC Deep Cleaning',
+    price: 899,
+    duration: '2 hours',
+    category: 'Maintenance',
+    includes: `
+• Complete indoor unit dismantling
+• Deep cleaning of cooling coils
+• Blower and fan cleaning
+• Outdoor unit deep cleaning
+• Drain tray and pipe cleaning
+• Final cooling efficiency test
+`
+  },
+  {
+    id: 3,
+    name: 'AC Gas Charging',
+    price: 1299,
+    duration: '2 hours',
+    category: 'Repair',
+    includes: `
+• Gas level inspection
+• Gas leakage detection
+• Vacuuming of system (if required)
+• Refrigerant gas refilling
+• Pressure and temperature testing
+• Cooling performance verification
+`
+  },
+  {
+    id: 4,
+    name: 'AC Repair & Troubleshooting',
+    price: 399,
+    duration: '1 hour',
+    category: 'Repair',
+    includes: `
+• Complete AC inspection
+• Identification of fault or issue
+• Electrical and mechanical diagnosis
+• Minor adjustments (if possible)
+• Repair cost estimation
+• Repair charges extra if approved
+`
+  },
+  {
+    id: 5,
+    name: 'AC Installation',
+    price: 1499,
+    duration: '3 hours',
+    category: 'Installation',
+    includes: `
+• Indoor unit wall mounting
+• Outdoor unit placement and fixing
+• Copper pipe connection
+• Drain pipe setup
+• Electrical wiring connection
+• Gas leakage test
+• Final installation and performance test
+`
+  },
+  {
+    id: 6,
+    name: 'AC Uninstallation',
+    price: 699,
+    duration: '1.5 hours',
+    category: 'Installation',
+    includes: `
+• Safe gas recovery (if required)
+• Indoor unit removal
+• Outdoor unit dismantling
+• Pipe and wire removal
+• Basic packing support
+• Damage-free uninstallation
+`
+  },
+  {
+    id: 7,
+    name: 'Annual Maintenance Contract (AMC)',
+    price: 2999,
+    duration: '12 months',
+    category: 'Maintenance',
+    includes: `
+• 4 scheduled general services in a year
+• Filter and coil cleaning
+• Gas pressure check in every visit
+• Priority service support
+• Discounted repair charges
+• Extended AC life and efficiency
+`
+  },
+  {
+    id: 8,
+    name: 'Water Leakage Issue',
+    price: 499,
+    duration: '1 hour',
+    category: 'Repair',
+    includes: `
+• Drain pipe blockage inspection
+• Drain pipe cleaning and flushing
+• Drain tray cleaning
+• Water leakage source identification
+• Basic pipe alignment correction
+• Leakage prevention testing
+`
+  },
+  {
+    id: 9,
+    name: 'Cooling Issue',
+    price: 499,
+    duration: '1 hour',
+    category: 'Repair',
+    includes: `
+• AC not cooling properly
+• AC blowing warm air
+• Uneven cooling in the room
+• Low cooling even at low temperature
+• Gas level and pressure check
+• Airflow and filter inspection
+• Cooling performance diagnosis
+`
+  },
+  {
+    id: 10,
+    name: 'Noise & Vibration Issue',
+    price: 499,
+    duration: '1 hour',
+    category: 'Repair',
+    includes: `
+• Indoor unit noise inspection
+• Outdoor unit vibration check
+• Fan and motor inspection
+• Mounting and screw tightening
+• Noise source identification
+• Smooth operation testing
+`
+  },
+  {
+    id: 11,
+    name: 'Power / Electrical Issue',
+    price: 499,
+    duration: '1 hour',
+    category: 'Repair',
+    includes: `
+          • AC not turning ON inspection
+          • Power fluctuation check
+          • Wiring and socket inspection
+          • Capacitor testing
+          • PCB and control board diagnosis
+          • Electrical safety check
+          `
+  },
+  {
+    id: 12,
+    name: 'Airflow Issue',
+    price: 499,
+    duration: '1 hour',
+    category: 'Repair',
+    includes: `
+          • Weak or no airflow issue
+          • Air filter inspection
+          • Blower and fan cleaning check
+          • Vent and louver inspection
+          • Air circulation testing
+          • Cooling airflow optimization
+          `
+  },
+  {
+    id: 13,
+    name: 'Other AC Issues',
+    price: 499,
+    duration: '1 hour',
+    category: 'Repair',
+    includes: `
+                • Any unidentified AC issue
+                • Complete AC diagnosis
+                • Mechanical or electrical inspection
+                • Issue explanation to customer
+                • Repair estimate sharing
+                • Repair charges extra if applicable
+                `
+  }
+];
+
 
   // AC Types
   const acTypes = ['Split AC', 'Window AC', 'Cassette AC', 'Tower AC', 'Portable AC'];
   const acBrands = ['LG', 'Samsung', 'Voltas', 'Daikin', 'Hitachi', 'Blue Star', 'Carrier', 'Other'];
+  const acCapacities = ['0.8 Ton', '1 Ton', '1.2 Ton', '1.5 Ton', '2 Ton', '2.5 Ton', '3 Ton', 'More than 3 Ton'];
+  const usageTypes = ['Residential', 'Commercial'];
 
   // Format date for display
   useEffect(() => {
@@ -174,6 +375,8 @@ export default function ACServiceScreen() {
       address,
       acType,
       acBrand: acBrand || 'Not specified',
+      acCapacity: acCapacity || 'Not specified',
+      usageType: usageType || 'Not specified',
       category: 'AC Services',
       date: formattedDate,
       time: formattedTime,
@@ -184,77 +387,53 @@ export default function ACServiceScreen() {
     await saveBookingToHistory(bookingData);
 
     // Navigate to OTP screen
-    navigation.navigate('Otp', {
-      phone: phoneNumber,
-      services: selectedServices,
-      category: 'AC Services',
-      address,
-      acType,
-      acBrand,
-      date: formattedDate,
-      time: formattedTime,
-      totalPrice
-    });
+    // navigation.navigate('Otp', {
+    //   phone: phoneNumber,
+    //   services: selectedServices,
+    //   category: 'AC Services',
+    //   address,
+    //   acType,
+    //   acBrand,
+    //   acCapacity,
+    //   usageType,
+    //   date: formattedDate,
+    //   time: formattedTime,
+    //   totalPrice
+    // });
   };
 
-  const renderDateTimePicker = () => {
-    if (Platform.OS === 'ios') {
-      return (
-        <Modal
-          transparent={true}
-          visible={showPicker}
-          animationType="slide"
-          onRequestClose={() => setShowPicker(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <DateTimePicker
-                value={currentPickerValue}
-                mode={pickerMode}
-                display="spinner"
-                onChange={onChange}
-                minimumDate={pickerMode === 'date' ? new Date() : undefined}
-                style={styles.iosPicker}
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={styles.modalCancelButton}
-                  onPress={() => setShowPicker(false)}
-                >
-                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.modalDoneButton}
-                  onPress={() => {
-                    if (pickerMode === 'date') {
-                      setDate(currentPickerValue);
-                    } else {
-                      setTime(currentPickerValue);
-                    }
-                    setShowPicker(false);
-                  }}
-                >
-                  <Text style={styles.modalDoneButtonText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      );
-    } else {
-      if (showPicker) {
-        return (
-          <DateTimePicker
-            value={currentPickerValue}
-            mode={pickerMode}
-            display="default"
-            onChange={onChange}
-            minimumDate={pickerMode === 'date' ? new Date() : undefined}
-          />
-        );
-      }
-      return null;
+  // Helper function to safely use DateTimePicker
+  const SafeDateTimePicker = ({ value, mode, display, onChange, minimumDate, style }) => {
+    if (!DateTimePicker) return null;
+    
+    // Create a safe mode value that TypeScript won't complain about
+    const safeMode = mode === 'date' ? 'date' : 'time';
+    
+    const props = {
+      value,
+      mode: safeMode,
+      display,
+      onChange,
+      minimumDate,
+    };
+    
+    // Only add style prop if it exists (for iOS)
+    if (style) {
+      props.style = style;
     }
+    
+    return React.createElement(DateTimePicker, props);
+  };
+
+  // Helper function to safely use MaterialIcons
+  const SafeIcon = ({ name, size, color }) => {
+    if (!MaterialIcons) return null;
+    
+    return React.createElement(MaterialIcons, {
+      name: name,
+      size: size,
+      color: color
+    });
   };
 
   return (
@@ -307,11 +486,11 @@ export default function ACServiceScreen() {
                 </View>
                 {isSelected ? (
                   <View style={styles.selectedIndicator}>
-                    <Icon name="check" size={20} color="#FFFFFF" />
+                    <SafeIcon name="check" size={20} color="#FFFFFF" />
                   </View>
                 ) : (
                   <View style={styles.unselectedIndicator}>
-                    <Icon name="add" size={20} color="#1E88E5" />
+                    <SafeIcon name="add" size={20} color="#1E88E5" />
                   </View>
                 )}
               </TouchableOpacity>
@@ -362,6 +541,52 @@ export default function ACServiceScreen() {
                     acBrand === brand && styles.selectedBrandButtonText
                   ]}>
                     {brand}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={styles.dropdownContainer}>
+            <Text style={styles.dropdownLabel}>AC Capacity (Optional)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
+              {acCapacities.map((capacity) => (
+                <TouchableOpacity
+                  key={capacity}
+                  style={[
+                    styles.capacityButton,
+                    acCapacity === capacity && styles.selectedCapacityButton
+                  ]}
+                  onPress={() => setAcCapacity(capacity)}
+                >
+                  <Text style={[
+                    styles.capacityButtonText,
+                    acCapacity === capacity && styles.selectedCapacityButtonText
+                  ]}>
+                    {capacity}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={styles.dropdownContainer}>
+            <Text style={styles.dropdownLabel}>Usage Type (Optional)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
+              {usageTypes.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.usageButton,
+                    usageType === type && styles.selectedUsageButton
+                  ]}
+                  onPress={() => setUsageType(type)}
+                >
+                  <Text style={[
+                    styles.usageButtonText,
+                    usageType === type && styles.selectedUsageButtonText
+                  ]}>
+                    {type}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -439,6 +664,20 @@ export default function ACServiceScreen() {
               <Text style={styles.summaryValue}>{acType || 'Not selected'}</Text>
             </View>
             
+            {acCapacity && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>AC Capacity</Text>
+                <Text style={styles.summaryValue}>{acCapacity}</Text>
+              </View>
+            )}
+            
+            {usageType && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Usage Type</Text>
+                <Text style={styles.summaryValue}>{usageType}</Text>
+              </View>
+            )}
+            
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Scheduled Time</Text>
               <Text style={styles.summaryValue}>{formattedDate} at {formattedTime}</Text>
@@ -472,7 +711,60 @@ export default function ACServiceScreen() {
         </TouchableOpacity>
       </View>
 
-      {renderDateTimePicker()}
+      {/* DateTimePicker for Android */}
+      {showPicker && Platform.OS === 'android' && (
+        <SafeDateTimePicker
+          value={currentPickerValue}
+          mode={pickerMode}
+          display="default"
+          onChange={onChange}
+          minimumDate={pickerMode === 'date' ? new Date() : undefined}
+        />
+      )}
+
+      {/* DateTimePicker Modal for iOS */}
+      {Platform.OS === 'ios' && showPicker && (
+        <Modal
+          transparent={true}
+          visible={showPicker}
+          animationType="slide"
+          onRequestClose={() => setShowPicker(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <SafeDateTimePicker
+                value={currentPickerValue}
+                mode={pickerMode}
+                display="spinner"
+                onChange={onChange}
+                minimumDate={pickerMode === 'date' ? new Date() : undefined}
+                style={styles.iosPicker}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowPicker(false)}
+                >
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalDoneButton}
+                  onPress={() => {
+                    if (pickerMode === 'date') {
+                      setDate(currentPickerValue);
+                    } else {
+                      setTime(currentPickerValue);
+                    }
+                    setShowPicker(false);
+                  }}
+                >
+                  <Text style={styles.modalDoneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -656,6 +948,48 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   selectedBrandButtonText: {
+    color: '#FFFFFF',
+  },
+  capacityButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginRight: 8,
+  },
+  selectedCapacityButton: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  capacityButtonText: {
+    fontSize: 14,
+    color: '#757575',
+    fontWeight: '500',
+  },
+  selectedCapacityButtonText: {
+    color: '#FFFFFF',
+  },
+  usageButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginRight: 8,
+  },
+  selectedUsageButton: {
+    backgroundColor: '#FF9800',
+    borderColor: '#FF9800',
+  },
+  usageButtonText: {
+    fontSize: 14,
+    color: '#757575',
+    fontWeight: '500',
+  },
+  selectedUsageButtonText: {
     color: '#FFFFFF',
   },
   datetimeContainer: {
