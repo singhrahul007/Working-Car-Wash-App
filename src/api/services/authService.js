@@ -6,7 +6,22 @@ import { baseApi } from '../base/baseApi';
  * @property {string} message
  * @property {Object} data
  */
-
+/**
+ * @typedef {Object} OTPVerifyResponse
+ * @property {boolean} success
+ * @property {string} message
+ * @property {string} token
+ * @property {string} refreshToken
+ * @property {string} sessionId
+ * @property {string} expiresAt
+ * @property {Object} user
+ * @property {boolean} requiresOTP
+ * @property {boolean} requires2FA
+ * @property {string} tempToken
+ * @property {string} accessToken
+ * @property {string} accessTokenExpiry
+ * @property {string} refreshTokenExpiry
+ */
 /**
  * Auth API Service (JavaScript + RTK Query)
  */
@@ -52,7 +67,7 @@ export const authApi = baseApi.injectEndpoints({
         body: otpData,
       }),
 
-      transformResponse: ( /** @type {ApiResponse} */ response) => {
+      transformResponse: ( /** @type {OTPVerifyResponse} */ response) => {
         console.log("🔍 verify-otp transformResponse received:", response);
     
     return {
@@ -70,30 +85,6 @@ export const authApi = baseApi.injectEndpoints({
       accessTokenExpiry: response.accessTokenExpiry,
       refreshTokenExpiry: response.refreshTokenExpiry,
     };
-
-        // return {
-        //     success: response.success,
-        //     message: response.message,
-        //     token: response.data.token,
-        //     refreshToken: response.data.refreshToken,
-        //     sessionId: response.data.sessionId,
-        //     expiresAt: response.data.expiresAt,
-        //   user: {
-        //       id: response.data.user?.id,
-        //       email: response.data.user?.email,
-        //       mobileNumber: response.data.user?.mobileNumber,
-        //       fullName: response.data.user?.fullName,
-        //       profilePicture: response.data.user?.profilePicture,
-        //       isEmailVerified: response.data.user?.isEmailVerified,
-        //       isMobileVerified: response.data.user?.isMobileVerified,
-        //     },
-        //       requiresOTP: response.data.requiresOTP,
-        //       requires2FA: response.data.requires2FA,
-        //       tempToken: response.data.tempToken,
-        //       accessToken: response.data.accessToken,
-        //       accessTokenExpiry: response.data.accessTokenExpiry,
-        //       refreshTokenExpiry: response.data.refreshTokenExpiry,
-        // };
       },
 
       invalidatesTags: ['Auth'],
