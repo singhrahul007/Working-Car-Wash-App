@@ -1,6 +1,6 @@
 // store/slices/authSlice.js
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { TokenManager } from '../../api/interceptors/authInterceptor';
+import { TokenManager } from '../../api/utils/tokenManager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../utils/api';
 
