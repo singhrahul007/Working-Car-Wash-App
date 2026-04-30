@@ -85,8 +85,8 @@ const CartScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   
-  // Availability states
-  const [availableSlots, setAvailableSlots] = useState([]);
+  // Availability states - FIXED: Initialize as object instead of array
+  const [availableSlots, setAvailableSlots] = useState({});
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [dateAvailability, setDateAvailability] = useState({});
   const [timeSlotAvailability, setTimeSlotAvailability] = useState({});
@@ -327,7 +327,7 @@ const CartScreen = () => {
     }
   };
 
-  // Render time slot buttons
+  // Render time slot buttons - FIXED: Proper Set iteration
   const renderTimeSlots = () => {
     if (!selectedDate || loadingSlots) return null;
     
@@ -338,7 +338,13 @@ const CartScreen = () => {
       }
     });
     
-    const uniqueSlots = [...new Set(slots)].sort();
+    // FIXED: Proper way to get unique slots without Set iteration issues
+    const uniqueSlots = slots.reduce((acc, slot) => {
+      if (!acc.includes(slot)) {
+        acc.push(slot);
+      }
+      return acc;
+    }, []).sort();
     
     return (
       <View style={styles.timeSlotsContainer}>
@@ -507,7 +513,13 @@ const CartScreen = () => {
               </Text>
             </View>
             {!isAllServicesAvailable() && selectedTime && (
-              <TouchableOpacity style={styles.findSlotButton}>
+              <TouchableOpacity 
+                style={styles.findSlotButton}
+                onPress={() => {
+                  // Implement find alternative slot logic
+                  Alert.alert('Find Alternative Slot', 'This feature would show alternative available slots');
+                }}
+              >
                 <Text style={styles.findSlotText}>Find Alternative Slot</Text>
                 <Ionicons name="arrow-forward" size={16} color="#2196F3" />
               </TouchableOpacity>
