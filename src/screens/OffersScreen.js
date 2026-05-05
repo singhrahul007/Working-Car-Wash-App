@@ -17,6 +17,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useGetOffersQuery, useGetExpiringSoonOffersQuery, useValidateOfferMutation } from '../api/services/offersApi';
 
 const { width } = Dimensions.get('window');
 
@@ -504,6 +505,74 @@ const OffersScreen = ({ navigation }) => {
   const [expiringSoon, setExpiringSoon] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // ─── RTK Query hooks ────────────────────────────────────────────────
+  const {
+    data: apiOffersData,
+    isLoading: offersLoading,
+    refetch: refetchOffers,
+  } = useGetOffersQuery(selectedCategory !== 'all' ? selectedCategory : undefined);
+
+  const {
+    data: apiExpiringSoon,
+    refetch: refetchExpiring,
+  } = useGetExpiringSoonOffersQuery();
+
+  const [validateOffer] = useValidateOfferMutation();
+
+  // Sync API offers -> local state (fallback to mock)
+  useEffect(() => {
+    const raw = Array.isArray(apiOffersData)
+      ? apiOffersData
+      : apiOffersData?.data || apiOffersData?.offers || [];
+    if (raw.length > 0) {
+      const normalized = raw.map((o) => ({
+        id: String(o.id || o.code),
+        title: o.title || o.name,
+        description: o.description,
+        code: o.code || o.offerCode,
+        discount: o.discountValue ?? o.discount ?? 0,
+        type: o.discountType === 'Fixed' ? 'fixed' : 'percentage',
+        minAmount: o.minCartAmount ?? o.minAmount ?? 0,
+        expiryDate: o.expiryDate || o.validUntil,
+        applicableServices: o.serviceCategories || ['all'],
+        category: (o.serviceCategories?.[0] || 'all').toLowerCase(),
+        color: o.color || '#4A90E2',
+        icon: o.icon || 'tag',
+        terms: o.terms || '',
+      }));
+      setOffers(normalized);
+    }
+  }, [apiOffersData]);
+
+  // Sync expiring-soon from API
+  useEffect(() => {
+    const raw = Array.isArray(apiExpiringSoon)
+      ? apiExpiringSoon
+      : apiExpiringSoon?.data || apiExpiringSoon?.offers || [];
+    if (raw.length > 0) {
+      const normalized = raw.map((o) => ({
+        id: String(o.id || o.code),
+        title: o.title || o.name,
+        code: o.code || o.offerCode,
+        discount: o.discountValue ?? o.discount ?? 0,
+        type: o.discountType === 'Fixed' ? 'fixed' : 'percentage',
+        expiryDate: o.expiryDate || o.validUntil,
+        color: o.color || '#FF6B6B',
+        icon: o.icon || 'tag',
+      }));
+      setExpiringSoon(normalized);
+    } else {
+      // Fallback: compute expiring from local mock data
+      const today = new Date();
+      const expiring = offers.filter((offer) => {
+        const d = new Date(offer.expiryDate);
+        const days = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+        return days <= 7 && days > 0;
+      });
+      setExpiringSoon(expiring);
+    }
+  }, [apiExpiringSoon, offers]);
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -554,19 +623,22 @@ const OffersScreen = ({ navigation }) => {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 2000);
+    Promise.all([refetchOffers(), refetchExpiring()]).finally(() => setRefreshing(false));
   };
 
-  const handleApplyOffer = (offer) => {
-    if (!appliedOffers.some(applied => applied.id === offer.id)) {
-      setAppliedOffers([...appliedOffers, offer]);
-      Alert.alert('Success', `Offer ${offer.code} applied successfully!`);
-    } else {
+  const handleApplyOffer = async (offer) => {
+    if (appliedOffers.some((applied) => applied.id === offer.id)) {
       Alert.alert('Already Applied', 'This offer is already applied to your cart');
+      return;
     }
+    // Validate via API (non-blocking; add locally regardless)
+    try {
+      await validateOffer({ offerCode: offer.code, cartAmount: 1000 }).unwrap();
+    } catch (err) {
+      console.warn('Offer validation API error (non-fatal):', err);
+    }
+    setAppliedOffers([...appliedOffers, offer]);
+    Alert.alert('Success', `Offer ${offer.code} applied successfully!`);
   };
 
   const handleRemoveOffer = (offerId) => {

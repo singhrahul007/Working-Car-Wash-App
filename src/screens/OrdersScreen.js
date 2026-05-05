@@ -14,12 +14,19 @@ import {
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useGetRecentBookingsQuery } from '../api/services/servicesApi';
+import { useGetMyAcBookingsQuery, useCancelAcBookingMutation } from '../api/services/acServiceApi';
 
 export default function OrderScreen() {
   const navigation = useNavigation();
   const [bookings, setBookings] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // ─── API Hooks ───────────────────────────────────────────────────────
+  const { data: recentApiData, refetch: refetchRecent } = useGetRecentBookingsQuery();
+  const { data: acApiData, refetch: refetchAc } = useGetMyAcBookingsQuery();
+  const [cancelAcBooking] = useCancelAcBookingMutation();
 
   // Load bookings on focus
   useFocusEffect(
@@ -29,13 +36,65 @@ export default function OrderScreen() {
     }, [])
   );
 
+  // Merge API data into the bookings list whenever it arrives
+  useEffect(() => {
+    const apiBookings = [];
+
+    // Normalize /api/bookings/recent response
+    const recent = Array.isArray(recentApiData)
+      ? recentApiData
+      : recentApiData?.data || recentApiData?.bookings || [];
+    recent.forEach((b) => {
+      apiBookings.push({
+        id: b.id || b.bookingId,
+        bookingReference: b.bookingId || b.bookingReference,
+        services: b.service ? [{ name: b.service?.name || 'Service', price: b.totalAmount || 0 }] : [],
+        vehicle: b.vehicleType?.toLowerCase() === 'bike' ? 'bike' : 'car',
+        date: b.scheduledDate ? new Date(b.scheduledDate).toLocaleDateString() : '--',
+        time: b.scheduledTime || '--',
+        phone: b.specialInstructions || '--',
+        totalPrice: b.totalAmount || 0,
+        status: b.status || 'Pending',
+        category: 'car-wash',
+        _apiId: b.id,
+      });
+    });
+
+    // Normalize /api/ac-bookings/my-bookings response
+    const acList = Array.isArray(acApiData)
+      ? acApiData
+      : acApiData?.data || acApiData?.bookings || [];
+    acList.forEach((b) => {
+      apiBookings.push({
+        id: b.id,
+        bookingReference: b.bookingReference,
+        services: (b.services || []).map((s) => ({ name: s.name, price: s.price || 0 })),
+        vehicle: null,
+        date: b.scheduledDate ? new Date(b.scheduledDate).toLocaleDateString() : '--',
+        time: b.scheduledTime || '--',
+        phone: b.customerPhone || '--',
+        totalPrice: b.totalAmount || 0,
+        status: b.status || 'Pending',
+        category: 'ac-service',
+        _apiId: b.id,
+      });
+    });
+
+    if (apiBookings.length > 0) {
+      setBookings((prev) => {
+        // Merge: API data first, then any local-only bookings not in API list
+        const apiIds = new Set(apiBookings.map((b) => String(b._apiId)));
+        const localOnly = prev.filter((b) => !b._apiId || !apiIds.has(String(b._apiId)));
+        return [...apiBookings, ...localOnly];
+      });
+    }
+  }, [recentApiData, acApiData]);
+
   const loadBookings = async () => {
     try {
       setLoading(true);
       const savedBookings = await AsyncStorage.getItem('@carwash_bookings');
-      if (savedBookings) {
-        setBookings(JSON.parse(savedBookings));
-      }
+      if (savedBookings) setBookings(JSON.parse(savedBookings));
     } catch (error) {
       console.log('Error loading bookings:', error);
     } finally {
@@ -46,6 +105,8 @@ export default function OrderScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     await loadBookings();
+    refetchRecent();
+    refetchAc();
     setRefreshing(false);
   };
 
@@ -60,7 +121,7 @@ export default function OrderScreen() {
     }
   };
 
-  const cancelBooking = async (bookingId) => {
+  const cancelBooking = async (bookingId, category, apiId) => {
     Alert.alert(
       'Cancel Booking',
       'Are you sure you want to cancel this booking?',
@@ -70,19 +131,22 @@ export default function OrderScreen() {
           text: 'Yes',
           onPress: async () => {
             try {
-              const updatedBookings = bookings.map(booking =>
-                booking.id === bookingId
-                  ? { ...booking, status: 'Cancelled' }
-                  : booking
+              // Cancel on API if it's an AC booking with a real API id
+              if (category === 'ac-service' && apiId) {
+                await cancelAcBooking(apiId).unwrap();
+              }
+              // Update local state
+              const updatedBookings = bookings.map((booking) =>
+                booking.id === bookingId ? { ...booking, status: 'Cancelled' } : booking
               );
-              
               setBookings(updatedBookings);
               await AsyncStorage.setItem('@carwash_bookings', JSON.stringify(updatedBookings));
             } catch (error) {
               console.log('Error cancelling booking:', error);
+              Alert.alert('Error', 'Failed to cancel booking. Please try again.');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -146,9 +210,9 @@ export default function OrderScreen() {
         
         <View style={styles.actionButtons}>
           {item.status !== 'Cancelled' && item.status !== 'Completed' && (
-            <TouchableOpacity 
+          <TouchableOpacity 
               style={styles.cancelButton}
-              onPress={() => cancelBooking(item.id)}
+              onPress={() => cancelBooking(item.id, item.category, item._apiId)}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>

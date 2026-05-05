@@ -1,6 +1,6 @@
 // # API endpoints, headers, etc.
 
-export const API_BASE_URL = 'http://192.168.1.3:64316/api';
+export const API_BASE_URL = 'http://192.168.1.11:64316/api';
 export const API_TIMEOUT = 30000;
 export const API_ENDPOINTS = {
   AUTH: {
@@ -15,6 +15,19 @@ export const API_ENDPOINTS = {
     PROFILE: '/Users/profile',
     UPDATE_PROFILE: '/Users/profile',
     CHANGE_PASSWORD: '/Users/change-password',
+  },
+  AC_SERVICES: {
+    LIST: '/ac-services',
+    POPULAR: '/ac-services/popular',
+    BY_CATEGORY: (category) => `/ac-services/category/${category}`,
+    BY_ID: (id) => `/ac-services/${id}`,
+  },
+  AC_BOOKINGS: {
+    CREATE: '/ac-bookings',
+    MY_BOOKINGS: '/ac-bookings/my-bookings',
+    BY_ID: (id) => `/ac-bookings/${id}`,
+    CANCEL: (id) => `/ac-bookings/${id}/cancel`,
+    UPDATE_STATUS: (id) => `/ac-bookings/${id}/status`,
   },
 };
 export const HTTP_METHODS = {
@@ -36,9 +49,9 @@ export const HTTP_STATUS = {
 
 
 export const API_CONFIG = {
-  BASE_URL: __DEV__ 
-    ?  API_BASE_URL
-    : 'http://192.168.1.3:64316/api',
+  BASE_URL: __DEV__
+    ? API_BASE_URL
+    : 'http://192.168.1.11:64316/api',
   TIMEOUT: API_TIMEOUT,
   HEADERS: {
     'Content-Type': 'application/json',

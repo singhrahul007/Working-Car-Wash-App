@@ -10,20 +10,24 @@ import {
   TextInput,
   Platform,
   Alert,
-  Modal
+  Modal,
+  ActivityIndicator
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCreateBookingMutation } from '../api/services/servicesApi';
 
 export default function BookingScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const { vehicle = 'car' } = route.params || {};
+
+  const [createBooking, { isLoading: bookingLoading }] = useCreateBookingMutation();
   
-  const [selectedServices, setSelectedServices] = useState([]); // Changed to array for multi-select
+  const [selectedServices, setSelectedServices] = useState([]);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [date, setDate] = useState(new Date());
   const [time, setTime] = useState(() => {
@@ -155,13 +159,35 @@ export default function BookingScreen() {
       Alert.alert('Incomplete Booking', 'Please select at least one service and enter your phone number.');
       return;
     }
-
     if (phoneNumber.length < 10) {
       Alert.alert('Invalid Phone', 'Please enter a valid phone number.');
       return;
     }
 
-    // Save booking to history
+    const hh = String(time.getHours()).padStart(2, '0');
+    const mm = String(time.getMinutes()).padStart(2, '0');
+
+    // Build payload matching /api/bookings Booking schema
+    const apiPayload = {
+      bookingId: `BK${Date.now()}`,
+      userId: '00000000-0000-0000-0000-000000000000', // replaced by backend from JWT
+      serviceId: selectedServices[0]?.id || 1,
+      vehicleType: vehicle === 'car' ? 'Car' : 'Bike',
+      scheduledDate: moment(date).startOf('day').toISOString(),
+      scheduledTime: `${hh}:${mm}`,
+      status: 'Pending',
+      subtotal: totalPrice,
+      totalAmount: totalPrice,
+      specialInstructions: phoneNumber,
+    };
+
+    try {
+      await createBooking(apiPayload).unwrap();
+    } catch (err) {
+      console.warn('Booking API error (non-fatal):', err);
+      // Non-fatal: proceed locally even if API fails
+    }
+
     const bookingData = {
       services: selectedServices,
       phone: phoneNumber,
@@ -169,19 +195,17 @@ export default function BookingScreen() {
       date: formattedDate,
       time: formattedTime,
       totalPrice,
-      status: 'Confirmed'
+      status: 'Confirmed',
     };
-
     await saveBookingToHistory(bookingData);
 
-    // Navigate to OTP screen
-    navigation.navigate('Otp', { 
+    navigation.navigate('Otp', {
       phone: phoneNumber,
       services: selectedServices,
       vehicle,
       date: formattedDate,
       time: formattedTime,
-      totalPrice
+      totalPrice,
     });
   };
 
@@ -388,16 +412,18 @@ export default function BookingScreen() {
         <TouchableOpacity 
           style={[
             styles.bookButton,
-            (selectedServices.length === 0 || !phoneNumber) && styles.disabledButton
+            (selectedServices.length === 0 || !phoneNumber || bookingLoading) && styles.disabledButton
           ]}
           onPress={handleBookNow}
-          disabled={selectedServices.length === 0 || !phoneNumber}
+          disabled={selectedServices.length === 0 || !phoneNumber || bookingLoading}
         >
-          <Text style={styles.bookButtonText}>
-            {selectedServices.length > 0 
-              ? `Book Now - Rs.${totalPrice}` 
-              : 'Select Services'}
-          </Text>
+          {bookingLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.bookButtonText}>
+              {selectedServices.length > 0 ? `Book Now - Rs.${totalPrice}` : 'Select Services'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 

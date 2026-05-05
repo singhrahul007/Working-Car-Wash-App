@@ -21,40 +21,59 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout, selectCurrentUser, selectIsAuthenticated } from '../store/slices/authSlice';
+import { useGetUserProfileQuery, useUpdateUserProfileMutation } from '../api/services/userApi';
 
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-   const dispatch = useDispatch();
+  const dispatch = useDispatch();
 
-    // Get user from Redux
+  // Get user from Redux
   const userFromRedux = useSelector(selectCurrentUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
+  // ─── API hooks ─────────────────────────────────────────────────────
+  const { data: apiProfile } = useGetUserProfileQuery(undefined, { skip: !isAuthenticated });
+  const [updateUserProfile, { isLoading: savingProfile }] = useUpdateUserProfileMutation();
+
   // User State
-  // User State - Update initial state
   const [user, setUser] = useState({
     name: userFromRedux?.fullName || 'Rahul Singh',
     email: userFromRedux?.email || 'rahul.singh@washingexpress.com',
     phone: userFromRedux?.mobileNumber || '+91 98765 43210',
     profileImage: null,
     joinedDate: userFromRedux?.createdAt ? new Date(userFromRedux.createdAt).toLocaleDateString('en-US', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
+      day: 'numeric', month: 'short', year: 'numeric'
     }) : '15 Jan 2025',
     totalBookings: 12,
     loyaltyPoints: 450,
-    isLoggedIn: isAuthenticated, // Use Redux authentication state
+    isLoggedIn: isAuthenticated,
   });
-    // Update useEffect to sync with Redux
+
+  // Sync API profile data
+  useEffect(() => {
+    if (apiProfile) {
+      const p = apiProfile.data || apiProfile;
+      setUser((prev) => ({
+        ...prev,
+        name: p.fullName || p.name || prev.name,
+        email: p.email || prev.email,
+        phone: p.mobileNumber || p.phoneNumber || prev.phone,
+        profileImage: p.profilePictureUrl || p.profileImage || prev.profileImage,
+        totalBookings: p.totalBookings ?? prev.totalBookings,
+        loyaltyPoints: p.loyaltyPoints ?? prev.loyaltyPoints,
+        joinedDate: p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : prev.joinedDate,
+      }));
+    }
+  }, [apiProfile]);
+
   useEffect(() => {
     if (userFromRedux) {
-      setUser(prev => ({
+      setUser((prev) => ({
         ...prev,
-        name: userFromRedux.fullName,
-        email: userFromRedux.email,
-        phone: userFromRedux.mobileNumber,
+        name: userFromRedux.fullName || prev.name,
+        email: userFromRedux.email || prev.email,
+        phone: userFromRedux.mobileNumber || prev.phone,
         isLoggedIn: isAuthenticated,
       }));
     }
@@ -131,7 +150,16 @@ export default function ProfileScreen() {
     setShowEditModal(true);
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
+    try {
+      await updateUserProfile({
+        fullName: tempUser.name,
+        email: tempUser.email,
+        phoneNumber: tempUser.phone,
+      }).unwrap();
+    } catch (err) {
+      console.warn('Profile update API error (non-fatal):', err);
+    }
     saveUserData(tempUser);
     setShowEditModal(false);
     Alert.alert('Success', 'Profile updated successfully!');
