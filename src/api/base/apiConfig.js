@@ -1,6 +1,6 @@
 // # API endpoints, headers, etc.
 
-export const API_BASE_URL = 'http://192.168.1.11:64316/api';
+export const API_BASE_URL = 'http://192.168.1.8:64316/api';
 export const API_TIMEOUT = 30000;
 export const API_ENDPOINTS = {
   AUTH: {
@@ -51,9 +51,9 @@ export const HTTP_STATUS = {
 export const API_CONFIG = {
   BASE_URL: __DEV__
     ? API_BASE_URL
-    : 'http://192.168.1.11:64316/api',
+    : 'http://192.168.1.8:64316/api',
   TIMEOUT: API_TIMEOUT,
   HEADERS: {
     'Content-Type': 'application/json',
   },
-};
+};

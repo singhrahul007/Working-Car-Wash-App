@@ -86,6 +86,23 @@ export const acServiceApi = baseApi.injectEndpoints({
         method: 'POST',
         body: bookingData,
       }),
+      // Backend returns { success, message, data: { bookingId, id, status, ... } }
+      // DB column: BookingId (e.g. "AC2605065558") is the human-readable reference
+      transformResponse: (/** @type {{ success: boolean, message: string, data: { id: number, bookingId: string, status: string, scheduledDate: string, scheduledTime: string, totalAmount: number } }} */ response) => {
+        console.log('📦 createAcBooking raw response:', JSON.stringify(response, null, 2));
+        return {
+          success: response.success,
+          message: response.message,
+          // bookingId is the human-readable reference (e.g. "AC2605065558")
+          bookingId: response.data?.bookingId,
+          id: response.data?.id,
+          status: response.data?.status,
+          scheduledDate: response.data?.scheduledDate,
+          scheduledTime: response.data?.scheduledTime,
+          totalAmount: response.data?.totalAmount,
+          data: response.data,
+        };
+      },
       invalidatesTags: ['ACBooking'],
     }),
 

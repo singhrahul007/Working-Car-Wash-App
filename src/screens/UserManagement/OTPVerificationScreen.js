@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch } from 'react-redux';
 import { useVerifyOtpMutation } from '../../api/services/authService';
 import { setCredentials } from '../../store/slices/authSlice';
-import { saveAuthData } from '../../utils/storage';
+import { saveAuthData, setToken } from '../../utils/storage';
 
 const OTPVerificationScreen = ({ navigation, route }) => {
   const {  
@@ -170,6 +170,15 @@ const OTPVerificationScreen = ({ navigation, route }) => {
 
       dispatch(setCredentials(authState));
       await saveAuthData(authState);
+      // ✅ Save the JWT token under @app_token so baseApi can attach it as Bearer header
+      const tokenToSave = response.accessToken || response.token;
+      if (tokenToSave) {
+        await setToken(tokenToSave);
+        console.log('✅ JWT token saved to @app_token:', tokenToSave.slice(0, 20) + '...');
+      } else {
+        console.warn('⚠️ No access token in OTP verify response!');
+      }
+
         // Navigate based on flow
       if (response.requires2FA) {
         navigation.navigate('TwoFactorAuth', {

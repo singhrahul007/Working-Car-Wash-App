@@ -153,9 +153,11 @@ export default function ACServiceScreen() {
     try {
       const existing = await AsyncStorage.getItem('@carwash_bookings');
       const bookings = existing ? JSON.parse(existing) : [];
+      // Backend wraps response in { success, data: { bookingId, id, ... } }
+      const bookingPayload = apiResponse?.data || apiResponse;
       const newBooking = {
-        id: apiResponse?.id || apiResponse?.bookingId || Date.now(),
-        bookingReference: apiResponse?.bookingReference || null,
+        id: bookingPayload?.id || Date.now(),
+        bookingReference: bookingPayload?.bookingId || null,
         ...bookingData,
         category: 'ac-service',
         status: 'Confirmed',
@@ -200,6 +202,11 @@ export default function ACServiceScreen() {
 
     try {
       const result = await createAcBooking(requestBody).unwrap();
+      console.log('✅ AC Booking API result:', JSON.stringify(result, null, 2));
+
+      // transformResponse already unwraps data to the top level, so read directly from result
+      // result.bookingId is the human-readable reference (e.g. "AC2605065558")
+      const bookingRef = result?.bookingId || result?.id || null;
 
       const bookingData = {
         services: selectedServices,
@@ -218,7 +225,7 @@ export default function ACServiceScreen() {
 
       Alert.alert(
         '✅ Booking Confirmed!',
-        `Your AC service booking has been placed successfully.\n\nRef: ${result?.bookingReference || result?.id || 'N/A'}\nDate: ${formattedDate} at ${formattedTime}`,
+        `Your AC service booking has been placed successfully.\n\nRef: ${bookingRef || 'N/A'}\nDate: ${formattedDate} at ${formattedTime}`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (err) {
@@ -229,7 +236,7 @@ export default function ACServiceScreen() {
   };
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
-  const SafeDateTimePicker = ({ value, mode, display, onChange: onCh, minimumDate, style }) => {
+  const SafeDateTimePicker = ({ value, mode, display, onChange: onCh, minimumDate, style = undefined }) => {
     if (!DateTimePicker) return null;
     const props = { value, mode: mode === 'date' ? 'date' : 'time', display, onChange: onCh, minimumDate };
     if (style) props.style = style;
