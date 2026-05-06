@@ -2,18 +2,14 @@
   "compilerOptions": {
     "checkJs": true,
     "allowJs": true,
-
     "baseUrl": ".",
-    "moduleResolution": "bundler",
-    "module": "ESNext",
+    "moduleResolution": "node",
+    "module": "CommonJS",
     "jsx": "react-native",
-
     "paths": {
       "api/*": ["src/api/*"],
       "*": ["node_modules/*"]
-    },
-
-    "ignoreDeprecations": "5.0"
+    }
   },
   "exclude": ["node_modules", "android", "ios"]
 }
