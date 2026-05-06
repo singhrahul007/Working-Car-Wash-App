@@ -241,7 +241,7 @@ const CategoryItem = ({ item, index, selectedCategory, onSelect }) => {
 
 const OfferCard = ({ item, index, appliedOffers, onViewDetails, onApplyOffer, onRemoveOffer, onCopyCode }) => {
   const isApplied = appliedOffers.some(offer => offer.id === item.id);
-  const daysUntilExpiry = Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+  const daysUntilExpiry = Math.ceil((new Date(item.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   const translateY = useRef(new Animated.Value(50)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -458,7 +458,7 @@ const ExpiringOfferCard = ({ offer, index, onViewDetails }) => {
         <View style={styles.expiringTimer}>
           <Ionicons name="time-outline" size={16} color="#fff" />
           <Text style={styles.expiringTimerText}>
-            {Math.ceil((new Date(offer.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))}d
+            {Math.ceil((new Date(offer.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}d
           </Text>
         </View>
       </TouchableOpacity>
@@ -566,7 +566,7 @@ const OffersScreen = ({ navigation }) => {
       const today = new Date();
       const expiring = offers.filter((offer) => {
         const d = new Date(offer.expiryDate);
-        const days = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+        const days = Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         return days <= 7 && days > 0;
       });
       setExpiringSoon(expiring);
@@ -602,7 +602,7 @@ const OffersScreen = ({ navigation }) => {
     const today = new Date();
     const expiring = offers.filter(offer => {
       const expiryDate = new Date(offer.expiryDate);
-      const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+      const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       return daysUntilExpiry <= 7 && daysUntilExpiry > 0;
     });
     setExpiringSoon(expiring);

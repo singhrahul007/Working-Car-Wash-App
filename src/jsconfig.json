@@ -5,6 +5,7 @@
 
     "baseUrl": ".",
     "moduleResolution": "bundler",
+    "module": "ESNext",
     "jsx": "react-native",
 
     "paths": {
@@ -12,7 +13,7 @@
       "*": ["node_modules/*"]
     },
 
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "5.0"
   },
   "exclude": ["node_modules", "android", "ios"]
 }
