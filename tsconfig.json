@@ -15,7 +15,7 @@
       "api/*": ["src/api/*"]
     },
 
-    "ignoreDeprecations": "5.0"
+    "ignoreDeprecations": "6.0"
   },
   "include": ["App.js", "index.js", "src/**/*.js", "src/**/*.jsx"],
   "exclude": ["node_modules", "android", "ios", "dist"]
