@@ -8,6 +8,6 @@ mcpServers:
     args:
       - -y
       - "@modelcontextprotocol/server-filesystem"
-      - "I:\\Projects"
+      - "I:\\Projects\\Car-Wash-App-Mobile-App\\Working-Car-Wash-App"
 
     env: {}
