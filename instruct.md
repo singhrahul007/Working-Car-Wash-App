@@ -16,6 +16,13 @@ The app provides functionality for:
 - Payment processing
 - Service tracking and notifications
 
+## Backend API Project
+The .NET Core backend API for this mobile app is located at:
+```
+I:\Projects\API\Car-Wash-App-API\Working-Car-Wash-App-API
+```
+Always keep mobile API integration aligned with the controllers and endpoints in that project.
+
 ## Tech Stack
 React Native
 TypeScript

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,11 +15,11 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SofaCleaningScreenStyles } from '../screens/Styles';
+import { PlumbingScreenStyles } from '../screens/Styles';
 import {
-  useGetSofaServicesQuery,
-  useCreateSofaBookingMutation,
-} from '../api/services/sofaServiceApi';
+  useGetPlumbingServicesQuery,
+  useCreatePlumbingBookingMutation,
+} from '../api/services/plumbingServiceApi';
 
 // Conditional imports to avoid TypeScript/web errors
 /** @type {any} */
@@ -32,17 +32,17 @@ if (Platform.OS !== 'web') {
   MaterialIcons = require('react-native-vector-icons/MaterialIcons').default;
 }
 
-export default function SofaCleaningScreen() {
+export default function PlumbingScreen() {
   const navigation = useNavigation();
 
-  // --- Form State -----------------------------------------------------------
+  // ─── Form State ───────────────────────────────────────────────────────────
   const [selectedServices, setSelectedServices] = useState(
     /** @type {Array<{id: number | string, name: string, price: number, duration: string, includes: string, type: string}>} */ ([])
   );
   const [phoneNumber, setPhoneNumber] = useState('');
   const [address, setAddress] = useState('');
-  const [sofaType, setSofaType] = useState('');
-  const [sofaCount, setSofaCount] = useState(1);
+  const [plumbingType, setPlumbingType] = useState('');
+  const [issueDescription, setIssueDescription] = useState('');
   const [date, setDate] = useState(new Date());
   const [time, setTime] = useState(() => {
     const t = new Date();
@@ -55,67 +55,92 @@ export default function SofaCleaningScreen() {
   const [formattedDate, setFormattedDate] = useState('Today');
   const [formattedTime, setFormattedTime] = useState('3:00 PM');
 
-  // --- RTK Query ------------------------------------------------------------
+  // ─── RTK Query ────────────────────────────────────────────────────────────
   const {
     data: apiServicesData,
     isLoading: servicesLoading,
     isError: servicesError,
-  } = useGetSofaServicesQuery({});
+  } = useGetPlumbingServicesQuery({});
 
-  const [createSofaBooking, { isLoading: bookingLoading }] = useCreateSofaBookingMutation();
+  const [createPlumbingBooking, { isLoading: bookingLoading }] = useCreatePlumbingBookingMutation();
 
-  // Sofa Types
-  const sofaTypes = ['2-Seater', '3-Seater', 'Sectional', 'L-Shaped', 'Recliner', 'Leather', 'Fabric'];
+  // Plumbing Types
+  const plumbingTypes = [
+    'Leak Repair',
+    'Pipe Fitting',
+    'Tap Repair',
+    'Drain Cleaning',
+    'Toilet Repair',
+    'Water Heater',
+    'Motor/Pump',
+    'Bathroom Fitting',
+  ];
 
   // Fallback static services used when API is unavailable
   const STATIC_SERVICES = [
     {
       id: 1,
-      name: 'Basic Sofa Cleaning',
-      price: 799,
-      duration: '1.5 hours',
-      includes: 'Vacuuming, Spot Cleaning, Deodorizing',
-      type: 'basic',
+      name: 'Basic Plumbing Inspection',
+      price: 299,
+      duration: '30 mins',
+      includes: 'Leak inspection, pipe check, basic diagnosis',
+      type: 'inspection',
     },
     {
       id: 2,
-      name: 'Deep Sofa Cleaning',
-      price: 1299,
-      duration: '2.5 hours',
-      includes: 'Steam Cleaning, Stain Removal, Fabric Protection',
-      type: 'deep',
+      name: 'Tap & Faucet Repair',
+      price: 399,
+      duration: '1 hour',
+      includes: 'Washer replacement, leak fixing, tap cleaning',
+      type: 'repair',
     },
     {
       id: 3,
-      name: 'Premium Sofa Cleaning',
-      price: 1899,
-      duration: '3 hours',
-      includes: 'Complete Restoration, Odor Removal, UV Treatment',
-      type: 'premium',
+      name: 'Pipe Leak Repair',
+      price: 599,
+      duration: '1.5 hours',
+      includes: 'Pipe sealing, joint repair, pressure testing',
+      type: 'repair',
     },
     {
       id: 4,
-      name: 'Leather Sofa Care',
-      price: 1499,
-      duration: '2 hours',
-      includes: 'Leather Conditioning, Polish, Protection',
-      type: 'leather',
+      name: 'Drain Cleaning',
+      price: 499,
+      duration: '1 hour',
+      includes: 'Clog removal, drain flushing, deodorizing',
+      type: 'cleaning',
     },
     {
       id: 5,
-      name: 'Sofa Sanitization',
-      price: 599,
-      duration: '1 hour',
-      includes: 'Germ Protection, Anti-bacterial Treatment',
-      type: 'sanitization',
+      name: 'Toilet Repair',
+      price: 699,
+      duration: '1.5 hours',
+      includes: 'Flush repair, seat fitting, leak fixing',
+      type: 'repair',
     },
     {
       id: 6,
-      name: 'Stain Removal',
-      price: 399,
-      duration: '45 mins',
-      includes: 'Targeted Stain Treatment',
-      type: 'stain',
+      name: 'Water Heater Service',
+      price: 799,
+      duration: '2 hours',
+      includes: 'Heater inspection, element check, basic repair',
+      type: 'maintenance',
+    },
+    {
+      id: 7,
+      name: 'Motor/Pump Repair',
+      price: 899,
+      duration: '2 hours',
+      includes: 'Motor diagnosis, wiring check, basic repair',
+      type: 'repair',
+    },
+    {
+      id: 8,
+      name: 'Bathroom Fitting Installation',
+      price: 999,
+      duration: '2.5 hours',
+      includes: 'New fittings, shower installation, accessories',
+      type: 'installation',
     },
   ];
 
@@ -163,7 +188,7 @@ export default function SofaCleaningScreen() {
   }, [time]);
 
   // Calculate total price
-  const totalPrice = selectedServices.reduce((sum, service) => sum + service.price, 0) * sofaCount;
+  const totalPrice = selectedServices.reduce((sum, service) => sum + service.price, 0);
 
   const showDatepicker = () => {
     setCurrentPickerValue(date);
@@ -195,24 +220,12 @@ export default function SofaCleaningScreen() {
   };
 
   const handleServiceSelect = (/** @type {any} */ service) => {
-    const isSelected = selectedServices.some(s => s.id === service.id);
-    
+    const isSelected = selectedServices.some((s) => s.id === service.id);
+
     if (isSelected) {
-      setSelectedServices(prev => prev.filter(s => s.id !== service.id));
+      setSelectedServices((prev) => prev.filter((s) => s.id !== service.id));
     } else {
-      setSelectedServices(prev => [...prev, service]);
-    }
-  };
-
-  const increaseCount = () => {
-    if (sofaCount < 5) {
-      setSofaCount(prev => prev + 1);
-    }
-  };
-
-  const decreaseCount = () => {
-    if (sofaCount > 1) {
-      setSofaCount(prev => prev - 1);
+      setSelectedServices((prev) => [...prev, service]);
     }
   };
 
@@ -227,7 +240,7 @@ export default function SofaCleaningScreen() {
         id: bookingPayload?.id || Date.now(),
         bookingReference: bookingPayload?.bookingId || null,
         ...bookingData,
-        category: 'sofa-cleaning',
+        category: 'plumbing',
         status: 'Confirmed',
         bookingDate: new Date().toISOString(),
       };
@@ -240,36 +253,36 @@ export default function SofaCleaningScreen() {
   };
 
   const handleBookNow = async () => {
-    // --- Validation -----------------------------------------------------------
+    // ── Validation ──────────────────────────────────────────────────────────
     if (selectedServices.length === 0) return Alert.alert('Select Service', 'Please select at least one service.');
     if (!phoneNumber) return Alert.alert('Phone Required', 'Please enter your phone number.');
     if (phoneNumber.length < 10) return Alert.alert('Invalid Phone', 'Please enter a valid 10-digit phone number.');
     if (!address.trim()) return Alert.alert('Address Required', 'Please enter your address for service.');
-    if (!sofaType) return Alert.alert('Sofa Type Required', 'Please select your sofa type.');
+    if (!plumbingType) return Alert.alert('Plumbing Type Required', 'Please select the type of plumbing issue.');
 
-    // --- Build scheduled time string (HH:mm) --------------------------------
+    // ── Build scheduled time string (HH:mm) ─────────────────────────────────
     const hh = String(time.getHours()).padStart(2, '0');
     const mm = String(time.getMinutes()).padStart(2, '0');
     const scheduledTimeStr = `${hh}:${mm}`;
 
-    // --- Build ISO date (date only, midnight UTC) ---------------------------
+    // ── Build ISO date (date only, midnight UTC) ─────────────────────────────
     const scheduledDateISO = moment(date).startOf('day').toISOString();
 
-    // --- Build request body matching SofaBookingCreateDTOs ------------------
+    // ── Build request body matching PlumbingBookingCreateDTOs ────────────────
     const requestBody = {
       serviceIds: selectedServices.map((s) => s.id),
       customerPhone: phoneNumber,
       customerAddress: address.trim(),
-      sofaType,
-      sofaCount,
+      plumbingType,
+      issueDescription: issueDescription.trim() || null,
       scheduledDate: scheduledDateISO,
       scheduledTime: scheduledTimeStr,
       specialInstructions: '',
     };
 
     try {
-      const result = await createSofaBooking(requestBody).unwrap();
-      console.log('Sofa Booking API result:', JSON.stringify(result, null, 2));
+      const result = await createPlumbingBooking(requestBody).unwrap();
+      console.log('Plumbing Booking API result:', JSON.stringify(result, null, 2));
 
       const bookingRef = result?.bookingId || result?.id || null;
 
@@ -277,9 +290,9 @@ export default function SofaCleaningScreen() {
         services: selectedServices,
         phone: phoneNumber,
         address,
-        sofaType,
-        sofaCount,
-        category: 'Sofa Cleaning',
+        plumbingType,
+        issueDescription,
+        category: 'Plumbing',
         date: formattedDate,
         time: formattedTime,
         totalPrice,
@@ -288,18 +301,18 @@ export default function SofaCleaningScreen() {
 
       Alert.alert(
         'Booking Confirmed!',
-        `Your sofa cleaning booking has been placed successfully.\n\nRef: ${bookingRef || 'N/A'}\nDate: ${formattedDate} at ${formattedTime}`,
+        `Your plumbing booking has been placed successfully.\n\nRef: ${bookingRef || 'N/A'}\nDate: ${formattedDate} at ${formattedTime}`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (err) {
-      console.error('Sofa Booking Error:', err);
+      console.error('Plumbing Booking Error:', err);
       const error = /** @type {any} */ (err);
       const msg = error?.data?.message || error?.error || 'Failed to create booking. Please try again.';
       Alert.alert('Booking Failed', msg);
     }
   };
 
-  // --- Helpers --------------------------------------------------------------
+  // ─── Helpers ─────────────────────────────────────────────────────────────
   const SafeDateTimePicker = (/** @type {any} */ props) => {
     if (!DateTimePicker) return null;
     const { value, mode, display, onChange: onCh, minimumDate, style } = props;
@@ -317,7 +330,7 @@ export default function SofaCleaningScreen() {
     return React.createElement(MaterialIcons, iconProps);
   };
 
-  const styles = SofaCleaningScreenStyles;
+  const styles = PlumbingScreenStyles;
 
   const renderDateTimePicker = () => {
     if (Platform.OS === 'ios') {
@@ -381,8 +394,8 @@ export default function SofaCleaningScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#8B4513" barStyle="light-content" />
-      
+      <StatusBar backgroundColor="#1E5AA8" barStyle="light-content" />
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -392,23 +405,23 @@ export default function SofaCleaningScreen() {
           >
             <Text style={styles.backButton}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Sofa Cleaning</Text>
+          <Text style={styles.headerTitle}>Plumbing Services</Text>
           <View style={{ width: 40 }} />
         </View>
 
         {/* Service Selection */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Select Cleaning Services</Text>
+          <Text style={styles.sectionTitle}>Select Plumbing Services</Text>
           <Text style={styles.selectCount}>
             {selectedServices.length} selected
           </Text>
         </View>
-        <Text style={styles.sectionSubtitle}>Professional sofa cleaning & restoration:</Text>
+        <Text style={styles.sectionSubtitle}>Professional plumbing repair & installation:</Text>
 
         {/* Loading / Error / List */}
         {servicesLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#8B4513" />
+            <ActivityIndicator size="large" color="#1E5AA8" />
             <Text style={styles.loadingText}>Loading services...</Text>
           </View>
         ) : servicesError ? (
@@ -421,8 +434,8 @@ export default function SofaCleaningScreen() {
 
         <View style={styles.servicesContainer}>
           {services.map((/** @type {any} */ service) => {
-            const isSelected = selectedServices.some(s => s.id === service.id);
-            
+            const isSelected = selectedServices.some((s) => s.id === service.id);
+
             return (
               <TouchableOpacity
                 key={service.id}
@@ -457,7 +470,7 @@ export default function SofaCleaningScreen() {
                   </View>
                 ) : (
                   <View style={styles.unselectedIndicator}>
-                    <SafeIcon name="add" size={20} color="#8B4513" />
+                    <SafeIcon name="add" size={20} color="#1E5AA8" />
                   </View>
                 )}
               </TouchableOpacity>
@@ -465,24 +478,24 @@ export default function SofaCleaningScreen() {
           })}
         </View>
 
-        {/* Sofa Details */}
-        <Text style={styles.sectionTitle}>Sofa Information</Text>
-        <View style={styles.sofaDetailsContainer}>
+        {/* Plumbing Details */}
+        <Text style={styles.sectionTitle}>Issue Details</Text>
+        <View style={styles.plumbingDetailsContainer}>
           <View style={styles.dropdownContainer}>
-            <Text style={styles.dropdownLabel}>Sofa Type *</Text>
+            <Text style={styles.dropdownLabel}>Plumbing Type *</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
-              {sofaTypes.map((type) => (
+              {plumbingTypes.map((type) => (
                 <TouchableOpacity
                   key={type}
                   style={[
                     styles.typeButton,
-                    sofaType === type && styles.selectedTypeButton
+                    plumbingType === type && styles.selectedTypeButton
                   ]}
-                  onPress={() => setSofaType(type)}
+                  onPress={() => setPlumbingType(type)}
                 >
                   <Text style={[
                     styles.typeButtonText,
-                    sofaType === type && styles.selectedTypeButtonText
+                    plumbingType === type && styles.selectedTypeButtonText
                   ]}>
                     {type}
                   </Text>
@@ -491,31 +504,15 @@ export default function SofaCleaningScreen() {
             </ScrollView>
           </View>
 
-          <View style={styles.countContainer}>
-            <Text style={styles.countLabel}>Number of Sofas</Text>
-            <View style={styles.countSelector}>
-              <TouchableOpacity 
-                style={styles.countButton}
-                onPress={decreaseCount}
-                disabled={sofaCount <= 1}
-              >
-                <SafeIcon name="remove" size={24} color={sofaCount <= 1 ? "#BCAAA4" : "#8B4513"} />
-              </TouchableOpacity>
-              
-              <View style={styles.countDisplay}>
-                <Text style={styles.countText}>{sofaCount}</Text>
-                <Text style={styles.countUnit}>sofa{sofaCount > 1 ? 's' : ''}</Text>
-              </View>
-              
-              <TouchableOpacity 
-                style={styles.countButton}
-                onPress={increaseCount}
-                disabled={sofaCount >= 5}
-              >
-                <SafeIcon name="add" size={24} color={sofaCount >= 5 ? "#BCAAA4" : "#8B4513"} />
-              </TouchableOpacity>
-            </View>
-          </View>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Describe the issue (optional)"
+            value={issueDescription}
+            onChangeText={setIssueDescription}
+            multiline={true}
+            numberOfLines={3}
+            textAlignVertical="top"
+          />
         </View>
 
         {/* Date & Time Selection */}
@@ -553,7 +550,7 @@ export default function SofaCleaningScreen() {
             keyboardType="phone-pad"
             maxLength={10}
           />
-          
+
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Enter full address for service *"
@@ -563,9 +560,9 @@ export default function SofaCleaningScreen() {
             numberOfLines={3}
             textAlignVertical="top"
           />
-          
+
           <Text style={styles.noteText}>
-            Our sofa cleaning expert will visit your address at the scheduled time
+            Our plumbing expert will visit your address at the scheduled time
           </Text>
         </View>
 
@@ -573,26 +570,26 @@ export default function SofaCleaningScreen() {
         {selectedServices.length > 0 && (
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>Service Summary</Text>
-            
+
             {selectedServices.map((service, index) => (
               <View key={index} style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>
                   - {service.name}
                 </Text>
-                <Text style={styles.summaryValue}>Rs.{service.price} x {sofaCount}</Text>
+                <Text style={styles.summaryValue}>Rs.{service.price}</Text>
               </View>
             ))}
-            
+
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Sofa Type</Text>
-              <Text style={styles.summaryValue}>{sofaType || 'Not selected'}</Text>
+              <Text style={styles.summaryLabel}>Plumbing Type</Text>
+              <Text style={styles.summaryValue}>{plumbingType || 'Not selected'}</Text>
             </View>
-            
+
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Scheduled Time</Text>
               <Text style={styles.summaryValue}>{formattedDate} at {formattedTime}</Text>
             </View>
-            
+
             <View style={[styles.summaryRow, styles.totalRow]}>
               <Text style={styles.totalLabel}>Total Amount</Text>
               <Text style={styles.totalPrice}>Rs.{totalPrice}</Text>
@@ -608,13 +605,15 @@ export default function SofaCleaningScreen() {
         <TouchableOpacity
           style={[
             styles.bookButton,
-            (selectedServices.length === 0 || !phoneNumber || !address.trim() || !sofaType) && styles.disabledButton
+            (selectedServices.length === 0 || !phoneNumber || !address.trim() || !plumbingType || bookingLoading) && styles.disabledButton
           ]}
           onPress={handleBookNow}
-          disabled={selectedServices.length === 0 || !phoneNumber || !address.trim() || !sofaType}
+          disabled={selectedServices.length === 0 || !phoneNumber || !address.trim() || !plumbingType || bookingLoading}
         >
           <Text style={styles.bookButtonText}>
-            {selectedServices.length > 0
+            {bookingLoading
+              ? 'Booking...'
+              : selectedServices.length > 0
               ? `Book Now - Rs.${totalPrice}`
               : 'Select Services'}
           </Text>
@@ -628,13 +627,11 @@ export default function SofaCleaningScreen() {
 
 const getTypeColor = (/** @type {string} */ type) => {
   switch(type) {
-    case 'basic': return '#8B4513';
-    case 'deep': return '#A0522D';
-    case 'premium': return '#D2691E';
-    case 'leather': return '#CD853F';
-    case 'sanitization': return '#DEB887';
-    case 'stain': return '#F4A460';
-    default: return '#8B4513';
+    case 'inspection': return '#1E5AA8';
+    case 'repair': return '#1565C0';
+    case 'cleaning': return '#0277BD';
+    case 'maintenance': return '#00838F';
+    case 'installation': return '#00695C';
+    default: return '#1E5AA8';
   }
 };
-

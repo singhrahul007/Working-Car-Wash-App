@@ -10,18 +10,34 @@ import {
   TextInput,
   Platform,
   Alert,
-  Modal
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  useGetCarpetServicesQuery,
+  useCreateCarpetBookingMutation,
+} from '../api/services/carpetServiceApi';
+
+// Conditional imports to avoid TypeScript/web errors
+/** @type {any} */
+let DateTimePicker;
+/** @type {any} */
+let MaterialIcons;
+
+if (Platform.OS !== 'web') {
+  DateTimePicker = require('@react-native-community/datetimepicker').default;
+  MaterialIcons = require('react-native-vector-icons/MaterialIcons').default;
+}
 
 export default function CarpetCleaningScreen() {
   const navigation = useNavigation();
-  
-  const [selectedServices, setSelectedServices] = useState([]);
+
+  const [selectedServices, setSelectedServices] = useState(
+    /** @type {Array<{id: number | string, name: string, basePrice: number, duration: string, includes: string, type: string}>} */ ([])
+  );
   const [phoneNumber, setPhoneNumber] = useState('');
   const [address, setAddress] = useState('');
   const [carpetType, setCarpetType] = useState('');
@@ -39,9 +55,18 @@ export default function CarpetCleaningScreen() {
   const [formattedDate, setFormattedDate] = useState('Today');
   const [formattedTime, setFormattedTime] = useState('3:00 PM');
 
+  // ─── RTK Query ────────────────────────────────────────────────────────────
+  const {
+    data: apiServicesData,
+    isLoading: servicesLoading,
+    isError: servicesError,
+  } = useGetCarpetServicesQuery({});
+
+  const [createCarpetBooking, { isLoading: bookingLoading }] = useCreateCarpetBookingMutation();
+
   // Carpet Types
   const carpetTypes = ['Wool', 'Synthetic', 'Silk', 'Cotton', 'Olefin', 'Nylon', 'Polyester', 'Blend'];
-  
+
   // Carpet Sizes
   const carpetSizes = [
     { id: 'small', name: 'Small', area: 'Up to 100 sq.ft', priceMultiplier: 1 },
@@ -49,58 +74,76 @@ export default function CarpetCleaningScreen() {
     { id: 'large', name: 'Large', area: '200-400 sq.ft', priceMultiplier: 2 },
     { id: 'xlarge', name: 'Extra Large', area: '400+ sq.ft', priceMultiplier: 3 }
   ];
-  
-  // Carpet Cleaning Services
-  const services = [
-    { 
-      id: 1, 
-      name: 'Basic Carpet Cleaning', 
-      basePrice: 499, 
-      duration: '1 hour', 
+
+  // Fallback static services used when API is unavailable
+  const STATIC_SERVICES = [
+    {
+      id: 1,
+      name: 'Basic Carpet Cleaning',
+      basePrice: 499,
+      duration: '1 hour',
       includes: 'Vacuuming, Spot Cleaning, Deodorizing',
-      type: 'basic'
+      type: 'basic',
     },
-    { 
-      id: 2, 
-      name: 'Deep Carpet Cleaning', 
-      basePrice: 799, 
-      duration: '2 hours', 
+    {
+      id: 2,
+      name: 'Deep Carpet Cleaning',
+      basePrice: 799,
+      duration: '2 hours',
       includes: 'Steam Cleaning, Stain Removal, Fabric Protection',
-      type: 'deep'
+      type: 'deep',
     },
-    { 
-      id: 3, 
-      name: 'Premium Carpet Cleaning', 
-      basePrice: 1199, 
-      duration: '3 hours', 
+    {
+      id: 3,
+      name: 'Premium Carpet Cleaning',
+      basePrice: 1199,
+      duration: '3 hours',
       includes: 'Complete Restoration, Odor Removal, UV Treatment',
-      type: 'premium'
+      type: 'premium',
     },
-    { 
-      id: 4, 
-      name: 'Carpet Stain Removal', 
-      basePrice: 299, 
-      duration: '45 mins', 
+    {
+      id: 4,
+      name: 'Carpet Stain Removal',
+      basePrice: 299,
+      duration: '45 mins',
       includes: 'Targeted Stain Treatment',
-      type: 'stain'
+      type: 'stain',
     },
-    { 
-      id: 5, 
-      name: 'Carpet Sanitization', 
-      basePrice: 399, 
-      duration: '1 hour', 
+    {
+      id: 5,
+      name: 'Carpet Sanitization',
+      basePrice: 399,
+      duration: '1 hour',
       includes: 'Germ Protection, Anti-bacterial Treatment',
-      type: 'sanitization'
+      type: 'sanitization',
     },
-    { 
-      id: 6, 
-      name: 'Carpet Deodorizing', 
-      basePrice: 349, 
-      duration: '45 mins', 
+    {
+      id: 6,
+      name: 'Carpet Deodorizing',
+      basePrice: 349,
+      duration: '45 mins',
       includes: 'Odor Neutralization, Freshness',
-      type: 'deodorizing'
+      type: 'deodorizing',
     },
   ];
+
+  // Normalize API response: support both array and { data: [...] } shapes
+  const services = React.useMemo(() => {
+    if (!apiServicesData) return STATIC_SERVICES;
+    const raw = Array.isArray(apiServicesData)
+      ? apiServicesData
+      : apiServicesData.data || apiServicesData.services || [];
+    if (raw.length === 0) return STATIC_SERVICES;
+    // Map API fields to local shape
+    return raw.map((/** @type {any} */ s) => ({
+      id: s.id,
+      name: s.name || s.serviceName,
+      basePrice: s.price ?? s.basePrice ?? 0,
+      duration: s.duration || s.estimatedDuration || '--',
+      includes: s.description || s.includes || '',
+      type: s.type || s.category || s.serviceCategory || 'basic',
+    }));
+  }, [apiServicesData]);
 
   // Format date for display
   useEffect(() => {
@@ -128,7 +171,7 @@ export default function CarpetCleaningScreen() {
   }, [time]);
 
   // Calculate service price based on size
-  const calculateServicePrice = (service) => {
+  const calculateServicePrice = (/** @type {any} */ service) => {
     const sizeMultiplier = carpetSizes.find(s => s.id === carpetSize)?.priceMultiplier || 1;
     return service.basePrice * sizeMultiplier;
   };
@@ -150,7 +193,7 @@ export default function CarpetCleaningScreen() {
     setShowPicker(true);
   };
 
-  const onChange = (event, selectedValue) => {
+  const onChange = (/** @type {any} */ event, /** @type {any} */ selectedValue) => {
     if (Platform.OS === 'android') {
       setShowPicker(false);
       if (selectedValue) {
@@ -167,9 +210,9 @@ export default function CarpetCleaningScreen() {
     }
   };
 
-  const handleServiceSelect = (service) => {
+  const handleServiceSelect = (/** @type {any} */ service) => {
     const isSelected = selectedServices.some(s => s.id === service.id);
-    
+
     if (isSelected) {
       setSelectedServices(prev => prev.filter(s => s.id !== service.id));
     } else {
@@ -189,23 +232,26 @@ export default function CarpetCleaningScreen() {
     }
   };
 
-  const saveBookingToHistory = async (bookingData) => {
+  /** @param {any} bookingData @param {any} apiResponse */
+  const saveBookingToHistory = async (bookingData, apiResponse) => {
     try {
       const existingBookings = await AsyncStorage.getItem('@carwash_bookings');
       const bookings = existingBookings ? JSON.parse(existingBookings) : [];
-      
+
+      const bookingPayload = apiResponse?.data || apiResponse;
       const newBooking = {
-        id: Date.now(),
+        id: bookingPayload?.id || Date.now(),
+        bookingReference: bookingPayload?.bookingId || null,
         ...bookingData,
         category: 'carpet-cleaning',
         status: 'Confirmed',
         bookingDate: new Date().toISOString(),
       };
-      
+
       bookings.unshift(newBooking);
       await AsyncStorage.setItem('@carwash_bookings', JSON.stringify(bookings));
     } catch (error) {
-      console.log('Error saving booking:', error);
+      console.warn('Error saving booking to local history:', error);
     }
   };
 
@@ -240,42 +286,79 @@ export default function CarpetCleaningScreen() {
       return;
     }
 
-    // Save booking to history
-    const bookingData = {
-      services: selectedServices.map(service => ({
-        ...service,
-        price: calculateServicePrice(service)
-      })),
-      phone: phoneNumber,
-      address,
+    // ── Build scheduled time string (HH:mm) ─────────────────────────────────
+    const hh = String(time.getHours()).padStart(2, '0');
+    const mm = String(time.getMinutes()).padStart(2, '0');
+    const scheduledTimeStr = `${hh}:${mm}`;
+
+    // ── Build ISO date (date only, midnight UTC) ─────────────────────────────
+    const scheduledDateISO = moment(date).startOf('day').toISOString();
+
+    // ── Build request body matching CarpetBookingCreateDTOs ──────────────────
+    const requestBody = {
+      serviceIds: selectedServices.map((s) => s.id),
+      customerPhone: phoneNumber,
+      customerAddress: address.trim(),
       carpetType,
-      carpetSize: carpetSizes.find(s => s.id === carpetSize)?.name || carpetSize,
+      carpetSize: carpetSizes.find((s) => s.id === carpetSize)?.name || carpetSize,
       carpetCount,
-      category: 'Carpet Cleaning',
-      date: formattedDate,
-      time: formattedTime,
-      totalPrice,
-      status: 'Confirmed'
+      scheduledDate: scheduledDateISO,
+      scheduledTime: scheduledTimeStr,
+      specialInstructions: '',
     };
 
-    await saveBookingToHistory(bookingData);
+    try {
+      const result = await createCarpetBooking(requestBody).unwrap();
+      console.log('Carpet Booking API result:', JSON.stringify(result, null, 2));
 
-    // Navigate to OTP screen
-    navigation.navigate('Otp', {
-      phone: phoneNumber,
-      services: selectedServices.map(service => ({
-        ...service,
-        price: calculateServicePrice(service)
-      })),
-      category: 'Carpet Cleaning',
-      address,
-      carpetType,
-      carpetSize: carpetSizes.find(s => s.id === carpetSize)?.name || carpetSize,
-      carpetCount,
-      date: formattedDate,
-      time: formattedTime,
-      totalPrice
-    });
+      const bookingRef = result?.bookingId || result?.id || null;
+
+      const bookingData = {
+        services: selectedServices.map((service) => ({
+          ...service,
+          price: calculateServicePrice(service),
+        })),
+        phone: phoneNumber,
+        address,
+        carpetType,
+        carpetSize: carpetSizes.find((s) => s.id === carpetSize)?.name || carpetSize,
+        carpetCount,
+        category: 'Carpet Cleaning',
+        date: formattedDate,
+        time: formattedTime,
+        totalPrice,
+      };
+      await saveBookingToHistory(bookingData, result);
+
+      Alert.alert(
+        'Booking Confirmed!',
+        `Your carpet cleaning booking has been placed successfully.\n\nRef: ${bookingRef || 'N/A'}\nDate: ${formattedDate} at ${formattedTime}`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+    } catch (err) {
+      console.error('Carpet Booking Error:', err);
+      const error = /** @type {any} */ (err);
+      const msg = error?.data?.message || error?.error || 'Failed to create booking. Please try again.';
+      Alert.alert('Booking Failed', msg);
+    }
+  };
+
+  // ─── Helpers ────────────────────────────────────────────────────────────
+  const SafeDateTimePicker = (/** @type {any} */ props) => {
+    if (!DateTimePicker) return null;
+    const { value, mode, display, onChange: onCh, minimumDate, style } = props;
+    /** @type {any} */
+    const pickerProps = { value, mode: mode === 'date' ? 'date' : 'time', display, onChange: onCh, minimumDate };
+    if (style) pickerProps.style = style;
+    return React.createElement(DateTimePicker, pickerProps);
+  };
+
+  const SafeIcon = (/** @type {any} */ props) => {
+    if (!MaterialIcons) return null;
+    const { name, size, color } = props;
+    /** @type {any} */
+    const iconProps = { name, size, color };
+    return React.createElement(MaterialIcons, iconProps);
   };
 
   const renderDateTimePicker = () => {
@@ -289,7 +372,7 @@ export default function CarpetCleaningScreen() {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <DateTimePicker
+              <SafeDateTimePicker
                 value={currentPickerValue}
                 mode={pickerMode}
                 display="spinner"
@@ -325,7 +408,7 @@ export default function CarpetCleaningScreen() {
     } else {
       if (showPicker) {
         return (
-          <DateTimePicker
+          <SafeDateTimePicker
             value={currentPickerValue}
             mode={pickerMode}
             display="default"
@@ -341,7 +424,7 @@ export default function CarpetCleaningScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#556B2F" barStyle="light-content" />
-      
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -363,12 +446,26 @@ export default function CarpetCleaningScreen() {
           </Text>
         </View>
         <Text style={styles.sectionSubtitle}>Professional carpet cleaning & restoration:</Text>
-        
+
+        {/* Loading / Error / List */}
+        {servicesLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#556B2F" />
+            <Text style={styles.loadingText}>Loading services...</Text>
+          </View>
+        ) : servicesError ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>
+              Could not load services from server. Showing default services.
+            </Text>
+          </View>
+        ) : null}
+
         <View style={styles.servicesContainer}>
-          {services.map((service) => {
+          {services.map((/** @type {any} */ service) => {
             const isSelected = selectedServices.some(s => s.id === service.id);
             const servicePrice = calculateServicePrice(service);
-            
+
             return (
               <TouchableOpacity
                 key={service.id}
@@ -399,11 +496,11 @@ export default function CarpetCleaningScreen() {
                 </View>
                 {isSelected ? (
                   <View style={styles.selectedIndicator}>
-                    <Icon name="check" size={20} color="#FFFFFF" />
+                    <SafeIcon name="check" size={20} color="#FFFFFF" />
                   </View>
                 ) : (
                   <View style={styles.unselectedIndicator}>
-                    <Icon name="add" size={20} color="#556B2F" />
+                    <SafeIcon name="add" size={20} color="#556B2F" />
                   </View>
                 )}
               </TouchableOpacity>
@@ -469,25 +566,25 @@ export default function CarpetCleaningScreen() {
           <View style={styles.countContainer}>
             <Text style={styles.countLabel}>Number of Carpets</Text>
             <View style={styles.countSelector}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.countButton}
                 onPress={decreaseCount}
                 disabled={carpetCount <= 1}
               >
-                <Icon name="remove" size={24} color={carpetCount <= 1 ? "#A5D6A7" : "#556B2F"} />
+                <SafeIcon name="remove" size={24} color={carpetCount <= 1 ? "#A5D6A7" : "#556B2F"} />
               </TouchableOpacity>
-              
+
               <View style={styles.countDisplay}>
                 <Text style={styles.countText}>{carpetCount}</Text>
                 <Text style={styles.countUnit}>carpet{carpetCount > 1 ? 's' : ''}</Text>
               </View>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.countButton}
                 onPress={increaseCount}
                 disabled={carpetCount >= 5}
               >
-                <Icon name="add" size={24} color={carpetCount >= 5 ? "#A5D6A7" : "#556B2F"} />
+                <SafeIcon name="add" size={24} color={carpetCount >= 5 ? "#A5D6A7" : "#556B2F"} />
               </TouchableOpacity>
             </View>
           </View>
@@ -528,7 +625,7 @@ export default function CarpetCleaningScreen() {
             keyboardType="phone-pad"
             maxLength={10}
           />
-          
+
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Enter full address for service *"
@@ -538,7 +635,7 @@ export default function CarpetCleaningScreen() {
             numberOfLines={3}
             textAlignVertical="top"
           />
-          
+
           <Text style={styles.noteText}>
             Our carpet cleaning expert will visit your address at the scheduled time
           </Text>
@@ -548,7 +645,7 @@ export default function CarpetCleaningScreen() {
         {selectedServices.length > 0 && (
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>Service Summary</Text>
-            
+
             {selectedServices.map((service, index) => (
               <View key={index} style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>
@@ -557,24 +654,24 @@ export default function CarpetCleaningScreen() {
                 <Text style={styles.summaryValue}>Rs.{calculateServicePrice(service)} × {carpetCount}</Text>
               </View>
             ))}
-            
+
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Carpet Type</Text>
               <Text style={styles.summaryValue}>{carpetType || 'Not selected'}</Text>
             </View>
-            
+
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Carpet Size</Text>
               <Text style={styles.summaryValue}>
                 {carpetSizes.find(s => s.id === carpetSize)?.name || 'Not selected'}
               </Text>
             </View>
-            
+
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Scheduled Time</Text>
               <Text style={styles.summaryValue}>{formattedDate} at {formattedTime}</Text>
             </View>
-            
+
             <View style={[styles.summaryRow, styles.totalRow]}>
               <Text style={styles.totalLabel}>Total Amount</Text>
               <Text style={styles.totalPrice}>Rs.{totalPrice}</Text>
@@ -590,13 +687,15 @@ export default function CarpetCleaningScreen() {
         <TouchableOpacity
           style={[
             styles.bookButton,
-            (selectedServices.length === 0 || !phoneNumber || !address.trim() || !carpetType || !carpetSize) && styles.disabledButton
+            (selectedServices.length === 0 || !phoneNumber || !address.trim() || !carpetType || !carpetSize || bookingLoading) && styles.disabledButton
           ]}
           onPress={handleBookNow}
-          disabled={selectedServices.length === 0 || !phoneNumber || !address.trim() || !carpetType || !carpetSize}
+          disabled={selectedServices.length === 0 || !phoneNumber || !address.trim() || !carpetType || !carpetSize || bookingLoading}
         >
           <Text style={styles.bookButtonText}>
-            {selectedServices.length > 0
+            {bookingLoading
+              ? 'Booking...'
+              : selectedServices.length > 0
               ? `Book Now - Rs.${totalPrice}`
               : 'Select Services'}
           </Text>
@@ -608,7 +707,7 @@ export default function CarpetCleaningScreen() {
   );
 }
 
-const getTypeColor = (type) => {
+const getTypeColor = (/** @type {string} */ type) => {
   switch(type) {
     case 'basic': return '#556B2F';
     case 'deep': return '#6B8E23';
@@ -676,6 +775,27 @@ const styles = StyleSheet.create({
     color: '#556B2F',
     fontWeight: '600',
   },
+  loadingContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#556B2F',
+  },
+  errorContainer: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#C62828',
+    textAlign: 'center',
+  },
   servicesContainer: {
     paddingHorizontal: 16,
     marginBottom: 16,
@@ -723,55 +843,69 @@ const styles = StyleSheet.create({
   },
   serviceIncludes: {
     fontSize: 13,
-    color: '#6B8E23',
+    color: '#558B2F',
     marginBottom: 8,
-    fontStyle: 'italic',
+    lineHeight: 18,
   },
   serviceDetails: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   servicePrice: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#556B2F',
-    marginRight: 12,
+    marginRight: 8,
   },
   serviceDuration: {
-    fontSize: 14,
-    color: '#6B8E23',
+    fontSize: 13,
+    color: '#78909C',
   },
   selectedIndicator: {
-    backgroundColor: '#556B2F',
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: '#556B2F',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 10,
+    marginLeft: 12,
   },
   unselectedIndicator: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
     borderWidth: 2,
     borderColor: '#556B2F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
   },
   carpetDetailsContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   dropdownContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   dropdownLabel: {
     fontSize: 14,
-    color: '#6B8E23',
-    marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#2E4D2E',
+    marginBottom: 10,
   },
   typeScroll: {
     flexGrow: 0,
@@ -780,10 +914,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F1F8E9',
+    marginRight: 10,
     borderWidth: 1,
     borderColor: '#C5E1A5',
-    marginRight: 8,
   },
   selectedTypeButton: {
     backgroundColor: '#556B2F',
@@ -791,20 +925,20 @@ const styles = StyleSheet.create({
   },
   typeButtonText: {
     fontSize: 14,
-    color: '#6B8E23',
+    color: '#556B2F',
     fontWeight: '500',
   },
   selectedTypeButtonText: {
     color: '#FFFFFF',
   },
   sizeContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   sizeLabel: {
     fontSize: 14,
-    color: '#6B8E23',
-    marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#2E4D2E',
+    marginBottom: 10,
   },
   sizeGrid: {
     flexDirection: 'row',
@@ -813,12 +947,12 @@ const styles = StyleSheet.create({
   },
   sizeButton: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#C5E1A5',
-    borderRadius: 8,
+    backgroundColor: '#F1F8E9',
+    borderRadius: 10,
     padding: 12,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#C5E1A5',
     alignItems: 'center',
   },
   selectedSizeButton: {
@@ -826,86 +960,211 @@ const styles = StyleSheet.create({
     borderColor: '#556B2F',
   },
   sizeButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#2E4D2E',
-    marginBottom: 4,
+    color: '#556B2F',
   },
   selectedSizeButtonText: {
     color: '#FFFFFF',
   },
   sizeAreaText: {
     fontSize: 12,
-    color: '#6B8E23',
+    color: '#78909C',
+    marginTop: 4,
   },
   selectedSizeAreaText: {
-    color: '#C5E1A5',
+    color: '#C8E6C9',
   },
   countContainer: {
-    marginBottom: 16,
+    marginTop: 8,
   },
   countLabel: {
     fontSize: 14,
-    color: '#6B8E23',
-    marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#2E4D2E',
+    marginBottom: 10,
   },
   countSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
   },
   countButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#C5E1A5',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F8E9',
     justifyContent: 'center',
     alignItems: 'center',
   },
   countDisplay: {
+    width: 80,
     alignItems: 'center',
-    marginHorizontal: 20,
   },
   countText: {
-    fontSize: 32,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#556B2F',
+    color: '#2E4D2E',
   },
   countUnit: {
-    fontSize: 14,
-    color: '#6B8E23',
-    marginTop: 4,
+    fontSize: 12,
+    color: '#78909C',
   },
   datetimeContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
     justifyContent: 'space-between',
-    marginBottom: 24,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   datetimeCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
     width: '48%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   datetimeLabel: {
-    fontSize: 14,
-    color: '#6B8E23',
+    fontSize: 12,
+    color: '#78909C',
     marginBottom: 8,
-    fontWeight: '500',
   },
   datetimeInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#C5E1A5',
-    borderRadius: 8,
-    padding: 14,
-    justifyContent: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#C5E1A5',
   },
   datetimeText: {
     fontSize: 16,
+    fontWeight: '600',
     color: '#2E4D2E',
-    fontWeight: '500',
+  },
+  contactContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#C5E1A5',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#2E4D2E',
+    marginBottom: 12,
+    backgroundColor: '#FAFAFA',
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  noteText: {
+    fontSize: 12,
+    color: '#78909C',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  summaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2E4D2E',
+    marginBottom: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#558B2F',
+    flex: 1,
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2E4D2E',
+  },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#C5E1A5',
+    paddingTop: 12,
+    marginTop: 8,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2E4D2E',
+  },
+  totalPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#556B2F',
+  },
+  buttonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#C5E1A5',
+  },
+  bookButton: {
+    backgroundColor: '#556B2F',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#A5D6A7',
+  },
+  bookButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
@@ -916,8 +1175,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    padding: 16,
   },
   iosPicker: {
     height: 200,
@@ -925,131 +1183,30 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    marginTop: 16,
   },
   modalCancelButton: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#C5E1A5',
     flex: 1,
+    paddingVertical: 12,
     marginRight: 8,
+    backgroundColor: '#F1F8E9',
+    borderRadius: 8,
     alignItems: 'center',
   },
   modalCancelButtonText: {
-    color: '#6B8E23',
-    fontSize: 16,
+    color: '#556B2F',
     fontWeight: '600',
   },
   modalDoneButton: {
-    backgroundColor: '#556B2F',
-    padding: 12,
-    borderRadius: 8,
     flex: 1,
+    paddingVertical: 12,
     marginLeft: 8,
+    backgroundColor: '#556B2F',
+    borderRadius: 8,
     alignItems: 'center',
   },
   modalDoneButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
     fontWeight: '600',
-  },
-  contactContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#C5E1A5',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  noteText: {
-    fontSize: 14,
-    color: '#6B8E23',
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    marginHorizontal: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  summaryTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#2E4D2E',
-    marginBottom: 16,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-    alignItems: 'flex-start',
-  },
-  summaryLabel: {
-    fontSize: 15,
-    color: '#2E4D2E',
-    flex: 1,
-    marginRight: 10,
-  },
-  summaryValue: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#2E4D2E',
-  },
-  totalRow: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#C5E1A5',
-  },
-  totalLabel: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2E4D2E',
-  },
-  totalPrice: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#556B2F',
-  },
-  buttonContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#F8FFF0',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#C5E1A5',
-  },
-  bookButton: {
-    backgroundColor: '#556B2F',
-    paddingVertical: 18,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#A5D6A7',
-  },
-  bookButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
   },
 });

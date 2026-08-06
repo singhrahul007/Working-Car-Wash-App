@@ -17,8 +17,7 @@ import SupportScreen from '../screens/SupportScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CartScreen from '../screens/CartScreen';
 import OffersScreen from '../screens/OffersScreen';
-import SavedCardsScreen from '../screens/SavedCardsScreen';
-
+import SavedCardsScreen from '../screens/SavedCardsScreen';import PlumbingScreen from '../screens/PlumbingScreen';
 // Imports for User Management (Make sure these files exist in the specified path)
 // Alternative: Import from index file
 import {
@@ -178,7 +177,7 @@ export default function MainNavigator() {
         name="Booking"
         component={BookingScreen}
         options={({ route }) => ({
-          title: `Book ${route.params?.vehicle || 'Car'} Wash`,
+          title: `Book ${(/** @type {any} */ (route.params))?.vehicle || 'Car'} Wash`,
           headerBackTitle: 'Back',
         })}
       />
@@ -235,6 +234,14 @@ export default function MainNavigator() {
         component={CarpetCleaningScreen}
         options={{
           title: 'Carpet Cleaning',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen
+        name="Plumbing"
+        component={PlumbingScreen}
+        options={{
+          title: 'Plumbing Services',
           headerBackTitle: 'Back',
         }}
       />

@@ -1,6 +1,6 @@
 // # API endpoints, headers, etc.
 
-export const API_BASE_URL = 'http://192.168.1.8:64316/api';
+export const API_BASE_URL = 'http://192.168.1.3:64316/api';
 export const API_TIMEOUT = 30000;
 export const API_ENDPOINTS = {
   AUTH: {
@@ -19,15 +19,28 @@ export const API_ENDPOINTS = {
   AC_SERVICES: {
     LIST: '/ac-services',
     POPULAR: '/ac-services/popular',
-    BY_CATEGORY: (category) => `/ac-services/category/${category}`,
-    BY_ID: (id) => `/ac-services/${id}`,
+    BY_CATEGORY: (/** @type {string} */ category) => `/ac-services/category/${category}`,
+    BY_ID: (/** @type {string | number} */ id) => `/ac-services/${id}`,
   },
   AC_BOOKINGS: {
     CREATE: '/ac-bookings',
     MY_BOOKINGS: '/ac-bookings/my-bookings',
-    BY_ID: (id) => `/ac-bookings/${id}`,
-    CANCEL: (id) => `/ac-bookings/${id}/cancel`,
-    UPDATE_STATUS: (id) => `/ac-bookings/${id}/status`,
+    BY_ID: (/** @type {string | number} */ id) => `/ac-bookings/${id}`,
+    CANCEL: (/** @type {string | number} */ id) => `/ac-bookings/${id}/cancel`,
+    UPDATE_STATUS: (/** @type {string | number} */ id) => `/ac-bookings/${id}/status`,
+  },
+  SOFA_SERVICES: {
+    LIST: '/sofa-services',
+    POPULAR: '/sofa-services/popular',
+    BY_CATEGORY: (/** @type {string} */ category) => `/sofa-services/category/${category}`,
+    BY_ID: (/** @type {string | number} */ id) => `/sofa-services/${id}`,
+  },
+  SOFA_BOOKINGS: {
+    CREATE: '/sofa-bookings',
+    MY_BOOKINGS: '/sofa-bookings/my-bookings',
+    BY_ID: (/** @type {string | number} */ id) => `/sofa-bookings/${id}`,
+    CANCEL: (/** @type {string | number} */ id) => `/sofa-bookings/${id}/cancel`,
+    UPDATE_STATUS: (/** @type {string | number} */ id) => `/sofa-bookings/${id}/status`,
   },
 };
 export const HTTP_METHODS = {
@@ -56,4 +69,4 @@ export const API_CONFIG = {
   HEADERS: {
     'Content-Type': 'application/json',
   },
-};
+};

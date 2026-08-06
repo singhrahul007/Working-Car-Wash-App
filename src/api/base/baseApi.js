@@ -29,7 +29,7 @@ const baseQuery = fetchBaseQuery({
   //}
 });
 
-const baseQueryWithReauth = async (args, api, extraOptions) => {
+const baseQueryWithReauth = async (/** @type {any} */ args, /** @type {any} */ api, /** @type {any} */ extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
   
   if (result?.error && result?.error.status === 401) {
@@ -53,6 +53,6 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 export const baseApi = createApi({
    reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Auth', 'User', 'Product', 'Order', 'ACService', 'ACBooking', 'Service', 'Booking', 'Offer', 'Address'],
+  tagTypes: ['Auth', 'User', 'Product', 'Order', 'ACService', 'ACBooking', 'SofaService', 'SofaBooking', 'CarpetService', 'CarpetBooking', 'PlumbingService', 'PlumbingBooking', 'Service', 'Booking', 'Offer', 'Address'],
   endpoints: () => ({}),
 });
